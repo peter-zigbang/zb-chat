@@ -27,6 +27,9 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
   
   // 메시지 액션 메뉴 상태
   const [menuState, setMenuState] = useState<MenuState | null>(null);
+  
+  // Channel 강제 리렌더링을 위한 key
+  const [channelKey, setChannelKey] = useState(0);
 
   // 메시지 전송 로그 (디버깅용)
   const logMessage = useCallback((action: string, data: unknown) => {
@@ -94,7 +97,7 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
     handleReply(menuState.message);
   }, [menuState, handleReply]);
 
-  // 삭제 핸들러
+  // 삭제 핸들러 - 메시지를 "삭제된 메시지입니다"로 표시
   const handleDelete = useCallback(async () => {
     if (!menuState) return;
     
@@ -117,9 +120,23 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
     
     if (confirm('이 메시지를 삭제하시겠습니까?')) {
       try {
-        // Sendbird SDK를 통해 메시지 삭제
-        await channel.deleteMessage(message);
-        console.log('[ChannelChat] 메시지 삭제됨:', message.messageId);
+        // UserMessage인 경우에만 업데이트 가능
+        if ('message' in message && message.messageType === 'user') {
+          // 메시지 내용을 "삭제된 메시지입니다"로 업데이트
+          const params = {
+            message: '삭제된 메시지입니다.',
+            data: JSON.stringify({ isDeleted: true, originalMessage: message.message }),
+          };
+          await channel.updateUserMessage(message.messageId, params);
+          console.log('[ChannelChat] 메시지 삭제 표시됨:', message.messageId);
+          
+          // Channel 강제 리렌더링
+          setChannelKey(prev => prev + 1);
+        } else {
+          // 파일 메시지는 실제 삭제
+          await channel.deleteMessage(message);
+          console.log('[ChannelChat] 파일 메시지 삭제됨:', message.messageId);
+        }
       } catch (error) {
         console.error('[ChannelChat] 삭제 실패:', error);
         alert('메시지 삭제에 실패했습니다.');
@@ -145,6 +162,7 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
       {/* 채팅 영역 */}
       <div className={styles.chatWrapper}>
         <Channel
+          key={`channel-${channel.url}-${channelKey}`}
           channelUrl={channel.url}
           renderMessage={({ message }) => {
             // AdminMessage는 reply 지원 안함
@@ -154,6 +172,17 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
 
             const userOrFileMessage = message as ReplyMessage;
             const isMyMessage = userOrFileMessage.sender?.userId === currentUserId;
+            
+            // 삭제된 메시지인지 확인
+            let isDeletedMessage = false;
+            try {
+              if (userOrFileMessage.data) {
+                const data = JSON.parse(userOrFileMessage.data);
+                isDeletedMessage = data?.isDeleted === true;
+              }
+            } catch {
+              // JSON 파싱 실패 시 무시
+            }
             
             // 메시지 텍스트 가져오기
             const getMessageText = () => {
@@ -199,41 +228,51 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
 
                 {/* 메시지 본문 - 클릭 시 액션 메뉴 표시 */}
                 <div 
-                  className={styles.messageBubble}
-                  onClick={(e) => handleMessageClick(e, userOrFileMessage, isMyMessage)}
+                  className={`${styles.messageBubble} ${isDeletedMessage ? styles.deletedMessage : ''}`}
+                  onClick={(e) => !isDeletedMessage && handleMessageClick(e, userOrFileMessage, isMyMessage)}
                 >
-                  {!isMyMessage && (
+                  {!isMyMessage && !isDeletedMessage && (
                     <span className={styles.senderName}>
                       {userOrFileMessage.sender?.nickname || '알 수 없음'}
                     </span>
                   )}
                   
-                  {/* 파일 메시지인 경우 */}
-                  {'url' in userOrFileMessage && userOrFileMessage.url && (
-                    <div className={styles.fileContent}>
-                      {userOrFileMessage.type?.startsWith('image/') ? (
-                        <img 
-                          src={userOrFileMessage.url} 
-                          alt={userOrFileMessage.name || '이미지'} 
-                          className={styles.messageImage}
-                        />
-                      ) : (
-                        <a 
-                          href={userOrFileMessage.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className={styles.fileLink}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          📎 {userOrFileMessage.name}
-                        </a>
+                  {/* 삭제된 메시지 */}
+                  {isDeletedMessage ? (
+                    <p className={styles.deletedText}>
+                      <span className={styles.deletedIcon}>🚫</span>
+                      삭제된 메시지입니다.
+                    </p>
+                  ) : (
+                    <>
+                      {/* 파일 메시지인 경우 */}
+                      {'url' in userOrFileMessage && userOrFileMessage.url && (
+                        <div className={styles.fileContent}>
+                          {userOrFileMessage.type?.startsWith('image/') ? (
+                            <img 
+                              src={userOrFileMessage.url} 
+                              alt={userOrFileMessage.name || '이미지'} 
+                              className={styles.messageImage}
+                            />
+                          ) : (
+                            <a 
+                              href={userOrFileMessage.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className={styles.fileLink}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              📎 {userOrFileMessage.name}
+                            </a>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
-                  
-                  {/* 텍스트 메시지 */}
-                  {'message' in userOrFileMessage && userOrFileMessage.message && (
-                    <p className={styles.messageText}>{userOrFileMessage.message}</p>
+                      
+                      {/* 텍스트 메시지 */}
+                      {'message' in userOrFileMessage && userOrFileMessage.message && (
+                        <p className={styles.messageText}>{userOrFileMessage.message}</p>
+                      )}
+                    </>
                   )}
                   
                   {/* 시간 표시 */}

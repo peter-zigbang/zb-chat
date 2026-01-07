@@ -145,87 +145,149 @@
   align-items: flex-start;
 }
 
-/* 답장 대상 메시지 (Quoted Message) */
-.quotedMessage {
-  display: flex;
-  gap: 8px;
-  padding: 8px 12px;
-  margin-bottom: 4px;
-  background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
-  border-radius: 10px;
-  max-width: 280px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.quotedMessage:hover {
-  background: linear-gradient(135deg, #e8ecff 0%, #dde4ff 100%);
-}
-
-.quotedBar {
-  width: 3px;
-  background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.quotedContent {
+/* 답글 프리뷰 (버블 안에 포함) - Figma 디자인 */
+.replyPreview {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  overflow: hidden;
-  min-width: 0;
+  gap: 4px;
+  padding: 8px 10px;
+  background: #ede5fb;
+  border-radius: 6px;
 }
 
-.quotedSender {
-  font-size: 11px;
-  font-weight: 600;
-  color: #6366f1;
+.myMessage .replyPreview {
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.quotedText {
+.otherMessage .replyPreview {
+  background: #ede5fb;
+}
+
+/* replyPreview 내부 레이아웃 */
+
+.replySender {
+  font-family: 'Pretendard', sans-serif;
   font-size: 12px;
-  color: #6b7280;
+  font-weight: 700;
+  line-height: 16px;
+  color: #8b5cf6;
+}
+
+.myMessage .replySender {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.replyText {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #808080;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.myMessage .replyText {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+
+/* 메시지 컨테이너 - 버블 + 메타 정보 */
+.messageContainer {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.myMessage .messageContainer {
+  flex-direction: row-reverse;
+}
+
+.otherMessage .messageContainer {
+  flex-direction: row;
 }
 
 /* 메시지 버블 */
 .messageBubble {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   padding: 10px 14px;
   border-radius: 16px;
-  max-width: 320px;
+  max-width: 280px;
   word-break: break-word;
   position: relative;
+  cursor: pointer;
 }
 
 .myMessage .messageBubble {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #ff6905;
   color: white;
   border-bottom-right-radius: 4px;
 }
 
 .otherMessage .messageBubble {
-  background: #f3f4f6;
-  color: #1f2937;
+  background: #f2f2f2;
+  color: #1a1a1a;
   border-bottom-left-radius: 4px;
 }
 
+/* 답글이 있는 버블 - 패딩 조정 */
+.messageBubble.hasReply {
+  padding: 10px;
+}
+
+/* 보낸 사람 이름 - 버블 바깥 위에 표시 */
 .senderName {
-  font-size: 11px;
-  font-weight: 600;
-  color: #6366f1;
-  margin-bottom: 2px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.5);
+  margin-bottom: 4px;
+  padding-left: 12px;
 }
 
 .messageText {
   margin: 0;
+  font-family: 'Pretendard', sans-serif;
   font-size: 14px;
-  line-height: 1.5;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+/* 메타 정보 (읽음 수 + 시간) */
+.messageMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0;
+  padding-bottom: 2px;
+}
+
+.myMessage .messageMeta {
+  align-items: flex-end;
+}
+
+.otherMessage .messageMeta {
+  align-items: flex-start;
+}
+
+.readCount {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 14px;
+  color: #3798fa;
+}
+
+.messageTime {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 14px;
+  color: #808080;
 }
 
 /* 삭제된 메시지 스타일 */
@@ -252,21 +314,6 @@
 .deletedIcon {
   font-size: 14px;
   opacity: 0.7;
-}
-
-.messageTime {
-  font-size: 10px;
-  opacity: 0.7;
-  align-self: flex-end;
-  margin-top: 2px;
-}
-
-.myMessage .messageTime {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.otherMessage .messageTime {
-  color: #9ca3af;
 }
 
 /* 파일/이미지 콘텐츠 */

@@ -208,123 +208,133 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
               return '메시지';
             };
 
+            // 읽음 수 계산 (채널 멤버 수 - 읽은 멤버 수)
+            const unreadCount = channel.getUnreadMemberCount?.(userOrFileMessage) || 0;
+
             return (
               <div className={`${styles.messageWrapper} ${isMyMessage ? styles.myMessage : styles.otherMessage}`}>
-                {/* 답장 대상 메시지 표시 */}
-                {parentMessage && (
-                  <div className={styles.quotedMessage}>
-                    <div className={styles.quotedBar} />
-                    <div className={styles.quotedContent}>
-                      <span className={styles.quotedSender}>
-                        {parentMessage.sender?.nickname || '알 수 없음'}
-                      </span>
-                      <span className={styles.quotedText}>
-                        {getParentMessageText().slice(0, 40)}
-                        {getParentMessageText().length > 40 ? '...' : ''}
-                      </span>
-                    </div>
-                  </div>
+                {/* 보낸 사람 이름 - 버블 바깥 위에 표시 (다른 사람 메시지만) */}
+                {!isMyMessage && !isDeletedMessage && (
+                  <span className={styles.senderName}>
+                    {userOrFileMessage.sender?.nickname || '알 수 없음'}
+                  </span>
                 )}
 
-                {/* 메시지 본문 - 클릭 시 액션 메뉴 표시 */}
-                <div 
-                  className={`${styles.messageBubble} ${isDeletedMessage ? styles.deletedMessage : ''}`}
-                  onClick={(e) => !isDeletedMessage && handleMessageClick(e, userOrFileMessage, isMyMessage)}
-                >
-                  {!isMyMessage && !isDeletedMessage && (
-                    <span className={styles.senderName}>
-                      {userOrFileMessage.sender?.nickname || '알 수 없음'}
-                    </span>
-                  )}
-                  
-                  {/* 삭제된 메시지 */}
-                  {isDeletedMessage ? (
-                    <p className={styles.deletedText}>
-                      <span className={styles.deletedIcon}>🚫</span>
-                      삭제된 메시지입니다.
-                    </p>
-                  ) : (
-                    <>
-                      {/* 파일 메시지인 경우 */}
-                      {'url' in userOrFileMessage && userOrFileMessage.url && (
-                        <div className={styles.fileContent}>
-                          {/* 이미지 */}
-                          {userOrFileMessage.type?.startsWith('image/') ? (
-                            <img 
-                              src={userOrFileMessage.url} 
-                              alt={userOrFileMessage.name || '이미지'} 
-                              className={styles.messageImage}
-                            />
-                          ) : userOrFileMessage.type?.startsWith('video/') ? (
-                            /* 동영상 - 썸네일 + 플레이 버튼 */
-                            <div 
-                              className={styles.videoContainer}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(userOrFileMessage.url, '_blank');
-                              }}
-                            >
-                              {/* 썸네일: thumbnails 배열이 있으면 사용, 없으면 video 태그로 첫 프레임 표시 */}
-                              {userOrFileMessage.thumbnails && userOrFileMessage.thumbnails.length > 0 ? (
-                                <img 
-                                  src={userOrFileMessage.thumbnails[0].url} 
-                                  alt={userOrFileMessage.name || '동영상'} 
-                                  className={styles.videoThumbnail}
-                                />
-                              ) : (
-                                <video 
-                                  src={userOrFileMessage.url} 
-                                  className={styles.videoThumbnail}
-                                  preload="metadata"
-                                  muted
-                                />
-                              )}
-                              {/* 플레이 버튼 오버레이 */}
-                              <div className={styles.playButton}>
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
-                                  <path d="M8 5v14l11-7z"/>
-                                </svg>
+                {/* 메시지 컨테이너 (버블 + 메타 정보) */}
+                <div className={styles.messageContainer}>
+                  {/* 메시지 버블 */}
+                  <div 
+                    className={`${styles.messageBubble} ${isDeletedMessage ? styles.deletedMessage : ''} ${parentMessage ? styles.hasReply : ''}`}
+                    onClick={(e) => !isDeletedMessage && handleMessageClick(e, userOrFileMessage, isMyMessage)}
+                  >
+                    {/* 답장 대상 메시지 표시 - 버블 안에 포함 */}
+                    {parentMessage && !isDeletedMessage && (
+                      <div className={styles.replyPreview}>
+                        <span className={styles.replySender}>
+                          {parentMessage.sender?.nickname || '알 수 없음'}에게 답장
+                        </span>
+                        <span className={styles.replyText}>
+                          {getParentMessageText().slice(0, 30)}
+                          {getParentMessageText().length > 30 ? '...' : ''}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* 삭제된 메시지 */}
+                    {isDeletedMessage ? (
+                      <p className={styles.deletedText}>
+                        <span className={styles.deletedIcon}>🚫</span>
+                        삭제된 메시지입니다.
+                      </p>
+                    ) : (
+                      <>
+                        {/* 파일 메시지인 경우 */}
+                        {'url' in userOrFileMessage && userOrFileMessage.url && (
+                          <div className={styles.fileContent}>
+                            {/* 이미지 */}
+                            {userOrFileMessage.type?.startsWith('image/') ? (
+                              <img 
+                                src={userOrFileMessage.url} 
+                                alt={userOrFileMessage.name || '이미지'} 
+                                className={styles.messageImage}
+                              />
+                            ) : userOrFileMessage.type?.startsWith('video/') ? (
+                              /* 동영상 - 썸네일 + 플레이 버튼 */
+                              <div 
+                                className={styles.videoContainer}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(userOrFileMessage.url, '_blank');
+                                }}
+                              >
+                                {/* 썸네일: thumbnails 배열이 있으면 사용, 없으면 video 태그로 첫 프레임 표시 */}
+                                {userOrFileMessage.thumbnails && userOrFileMessage.thumbnails.length > 0 ? (
+                                  <img 
+                                    src={userOrFileMessage.thumbnails[0].url} 
+                                    alt={userOrFileMessage.name || '동영상'} 
+                                    className={styles.videoThumbnail}
+                                  />
+                                ) : (
+                                  <video 
+                                    src={userOrFileMessage.url} 
+                                    className={styles.videoThumbnail}
+                                    preload="metadata"
+                                    muted
+                                  />
+                                )}
+                                {/* 플레이 버튼 오버레이 */}
+                                <div className={styles.playButton}>
+                                  <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                                    <path d="M8 5v14l11-7z"/>
+                                  </svg>
+                                </div>
+                                {/* 동영상 시간 표시 (있는 경우) */}
+                                <span className={styles.videoDuration}>
+                                  🎬 동영상
+                                </span>
                               </div>
-                              {/* 동영상 시간 표시 (있는 경우) */}
-                              <span className={styles.videoDuration}>
-                                🎬 동영상
-                              </span>
-                            </div>
-                          ) : (
-                            /* 기타 파일 */
-                            <a 
-                              href={userOrFileMessage.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className={styles.fileLink}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              📎 {userOrFileMessage.name}
-                            </a>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* 텍스트 메시지 - 이미지/동영상은 파일명 숨김 */}
-                      {'message' in userOrFileMessage && userOrFileMessage.message && (
-                        // 이미지나 동영상이 아닌 경우에만 텍스트 표시
-                        !('url' in userOrFileMessage && (
-                          userOrFileMessage.type?.startsWith('image/') || 
-                          userOrFileMessage.type?.startsWith('video/')
-                        )) && (
-                          <p className={styles.messageText}>{userOrFileMessage.message}</p>
-                        )
-                      )}
-                    </>
-                  )}
-                  
-                  {/* 시간 표시 */}
-                  <span className={styles.messageTime}>
-                    {new Date(userOrFileMessage.createdAt).toLocaleTimeString('ko-KR', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
+                            ) : (
+                              /* 기타 파일 */
+                              <a 
+                                href={userOrFileMessage.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className={styles.fileLink}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                📎 {userOrFileMessage.name}
+                              </a>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* 텍스트 메시지 - 이미지/동영상은 파일명 숨김 */}
+                        {'message' in userOrFileMessage && userOrFileMessage.message && (
+                          // 이미지나 동영상이 아닌 경우에만 텍스트 표시
+                          !('url' in userOrFileMessage && (
+                            userOrFileMessage.type?.startsWith('image/') || 
+                            userOrFileMessage.type?.startsWith('video/')
+                          )) && (
+                            <p className={styles.messageText}>{userOrFileMessage.message}</p>
+                          )
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* 메타 정보 (읽음 수 + 시간) */}
+                  <div className={styles.messageMeta}>
+                    {unreadCount > 0 && (
+                      <span className={styles.readCount}>{unreadCount}</span>
+                    )}
+                    <span className={styles.messageTime}>
+                      {new Date(userOrFileMessage.createdAt).toLocaleTimeString('ko-KR', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true,
+                      }).replace('오전', '오전 ').replace('오후', '오후 ')}
+                    </span>
+                  </div>
                 </div>
               </div>
             );

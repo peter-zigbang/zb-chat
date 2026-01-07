@@ -248,13 +248,50 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                       {/* 파일 메시지인 경우 */}
                       {'url' in userOrFileMessage && userOrFileMessage.url && (
                         <div className={styles.fileContent}>
+                          {/* 이미지 */}
                           {userOrFileMessage.type?.startsWith('image/') ? (
                             <img 
                               src={userOrFileMessage.url} 
                               alt={userOrFileMessage.name || '이미지'} 
                               className={styles.messageImage}
                             />
+                          ) : userOrFileMessage.type?.startsWith('video/') ? (
+                            /* 동영상 - 썸네일 + 플레이 버튼 */
+                            <div 
+                              className={styles.videoContainer}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(userOrFileMessage.url, '_blank');
+                              }}
+                            >
+                              {/* 썸네일: thumbnails 배열이 있으면 사용, 없으면 video 태그로 첫 프레임 표시 */}
+                              {userOrFileMessage.thumbnails && userOrFileMessage.thumbnails.length > 0 ? (
+                                <img 
+                                  src={userOrFileMessage.thumbnails[0].url} 
+                                  alt={userOrFileMessage.name || '동영상'} 
+                                  className={styles.videoThumbnail}
+                                />
+                              ) : (
+                                <video 
+                                  src={userOrFileMessage.url} 
+                                  className={styles.videoThumbnail}
+                                  preload="metadata"
+                                  muted
+                                />
+                              )}
+                              {/* 플레이 버튼 오버레이 */}
+                              <div className={styles.playButton}>
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                                  <path d="M8 5v14l11-7z"/>
+                                </svg>
+                              </div>
+                              {/* 동영상 시간 표시 (있는 경우) */}
+                              <span className={styles.videoDuration}>
+                                🎬 동영상
+                              </span>
+                            </div>
                           ) : (
+                            /* 기타 파일 */
                             <a 
                               href={userOrFileMessage.url} 
                               target="_blank" 
@@ -268,9 +305,15 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                         </div>
                       )}
                       
-                      {/* 텍스트 메시지 */}
+                      {/* 텍스트 메시지 - 이미지/동영상은 파일명 숨김 */}
                       {'message' in userOrFileMessage && userOrFileMessage.message && (
-                        <p className={styles.messageText}>{userOrFileMessage.message}</p>
+                        // 이미지나 동영상이 아닌 경우에만 텍스트 표시
+                        !('url' in userOrFileMessage && (
+                          userOrFileMessage.type?.startsWith('image/') || 
+                          userOrFileMessage.type?.startsWith('video/')
+                        )) && (
+                          <p className={styles.messageText}>{userOrFileMessage.message}</p>
+                        )
                       )}
                     </>
                   )}

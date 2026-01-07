@@ -467,12 +467,13 @@
   border: 1px solid #ffe999;
   border-radius: 20px;
   font-size: 16px;
-  cursor: default;
+  cursor: pointer;
   transition: all 0.15s;
 }
 
 .reactionBadge:hover {
   background: #fff3cc;
+  transform: scale(1.05);
 }
 
 .reactionBadge.myReaction {

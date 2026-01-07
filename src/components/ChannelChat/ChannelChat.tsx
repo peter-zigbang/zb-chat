@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
 import Channel from '@sendbird/uikit-react/Channel';
 import type { GroupChannel } from '@sendbird/chat/groupChannel';
-import type { UserMessage, FileMessage } from '@sendbird/chat/message';
+import type { UserMessage, FileMessage, Reaction } from '@sendbird/chat/message';
 import { CustomMessageInput } from '../CustomMessageInput/CustomMessageInput';
 import { MessageActionMenu } from '../MessageActionMenu/MessageActionMenu';
+import { ReactionUserList } from '../ReactionUserList/ReactionUserList';
 import styles from './ChannelChat.module.css';
 
 type ReplyMessage = UserMessage | FileMessage;
@@ -12,6 +13,11 @@ interface MenuState {
   message: ReplyMessage;
   position: { x: number; y: number };
   isMyMessage: boolean;
+}
+
+interface ReactionListState {
+  reactions: Reaction[];
+  position: { x: number; y: number };
 }
 
 interface Props {
@@ -33,6 +39,9 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
     message: ReplyMessage;
     position: { x: number; y: number };
   } | null>(null);
+  
+  // 리액션 사용자 목록 상태
+  const [reactionListState, setReactionListState] = useState<ReactionListState | null>(null);
   
   // Channel 강제 리렌더링을 위한 key
   const [channelKey, setChannelKey] = useState(0);
@@ -219,6 +228,40 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
       position: { x: rect.left, y: rect.bottom + 8 },
     });
   }, []);
+
+  // 리액션 배지 클릭 핸들러 - 사용자 목록 팝업 표시
+  const handleReactionBadgeClick = useCallback((
+    e: React.MouseEvent,
+    reactions: Reaction[]
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // 화면 중앙에 팝업 표시
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    setReactionListState({
+      reactions,
+      position: { 
+        x: Math.max(16, (viewportWidth - 320) / 2), 
+        y: Math.max(100, viewportHeight / 4) 
+      },
+    });
+  }, []);
+
+  // 채널 멤버에서 사용자 정보 가져오기
+  const getUserInfo = useCallback((userId: string) => {
+    const member = channel.members.find(m => m.userId === userId);
+    if (member) {
+      return {
+        oderId: member.oderId,
+        nickname: member.nickname,
+        profileUrl: member.profileUrl,
+      };
+    }
+    return null;
+  }, [channel.members]);
 
   return (
     <div className={styles.container}>
@@ -418,14 +461,15 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                 {userOrFileMessage.reactions && userOrFileMessage.reactions.length > 0 && (
                   <div className={styles.reactionsContainer}>
                     {userOrFileMessage.reactions.map((reaction) => (
-                      <span 
+                      <button 
                         key={reaction.key} 
                         className={`${styles.reactionBadge} ${reaction.userIds.includes(currentUserId) ? styles.myReaction : ''}`}
-                        title={`${reaction.userIds.length}명이 반응함`}
+                        title={`${reaction.userIds.length}명이 반응함 - 클릭하여 확인`}
+                        onClick={(e) => handleReactionBadgeClick(e, userOrFileMessage.reactions || [])}
                       >
                         {reaction.key}
                         <span className={styles.reactionCount}>{reaction.userIds.length}</span>
-                      </span>
+                      </button>
                     ))}
                     {/* + 버튼 - 이모지 피커 열기 */}
                     <button 
@@ -496,6 +540,16 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
             ))}
           </div>
         </div>
+      )}
+
+      {/* 리액션 사용자 목록 팝업 */}
+      {reactionListState && (
+        <ReactionUserList
+          reactions={reactionListState.reactions}
+          position={reactionListState.position}
+          onClose={() => setReactionListState(null)}
+          getUserInfo={getUserInfo}
+        />
       )}
     </div>
   );

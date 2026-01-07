@@ -28,6 +28,12 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
   // 메시지 액션 메뉴 상태
   const [menuState, setMenuState] = useState<MenuState | null>(null);
   
+  // 이모지 피커 상태
+  const [emojiPickerState, setEmojiPickerState] = useState<{
+    message: ReplyMessage;
+    position: { x: number; y: number };
+  } | null>(null);
+  
   // Channel 강제 리렌더링을 위한 key
   const [channelKey, setChannelKey] = useState(0);
 
@@ -172,6 +178,47 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
       console.error('[ChannelChat] 리액션 실패:', error);
     }
   }, [menuState, channel, currentUserId]);
+
+  // 이모지 피커에서 리액션 추가 핸들러
+  const handleAddReactionFromPicker = useCallback(async (emojiKey: string) => {
+    if (!emojiPickerState) return;
+    
+    const message = emojiPickerState.message;
+    
+    try {
+      // 이미 같은 리액션이 있는지 확인
+      const existingReaction = message.reactions?.find(r => 
+        r.key === emojiKey && r.userIds.includes(currentUserId)
+      );
+      
+      if (existingReaction) {
+        await channel.deleteReaction(message, emojiKey);
+        console.log('[ChannelChat] 리액션 제거 (피커):', emojiKey, message.messageId);
+      } else {
+        await channel.addReaction(message, emojiKey);
+        console.log('[ChannelChat] 리액션 추가 (피커):', emojiKey, message.messageId);
+      }
+      
+      setEmojiPickerState(null);
+    } catch (error) {
+      console.error('[ChannelChat] 리액션 실패:', error);
+    }
+  }, [emojiPickerState, channel, currentUserId]);
+
+  // + 버튼 클릭 핸들러
+  const handleOpenEmojiPicker = useCallback((
+    e: React.MouseEvent,
+    message: ReplyMessage
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    setEmojiPickerState({
+      message,
+      position: { x: rect.left, y: rect.bottom + 8 },
+    });
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -380,6 +427,14 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                         <span className={styles.reactionCount}>{reaction.userIds.length}</span>
                       </span>
                     ))}
+                    {/* + 버튼 - 이모지 피커 열기 */}
+                    <button 
+                      className={styles.addReactionButton}
+                      onClick={(e) => handleOpenEmojiPicker(e, userOrFileMessage)}
+                      title="리액션 추가"
+                    >
+                      +
+                    </button>
                   </div>
                 )}
               </div>
@@ -417,6 +472,30 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
           onDelete={handleDelete}
           onReaction={handleReaction}
         />
+      )}
+
+      {/* 이모지 피커 팝업 */}
+      {emojiPickerState && (
+        <div 
+          className={styles.emojiPickerOverlay}
+          onClick={() => setEmojiPickerState(null)}
+        >
+          <div 
+            className={styles.emojiPicker}
+            style={{ left: emojiPickerState.position.x, top: emojiPickerState.position.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {['👍', '✓', '😍', '😅', '😢', '😂'].map((emoji) => (
+              <button
+                key={emoji}
+                className={styles.emojiPickerButton}
+                onClick={() => handleAddReactionFromPicker(emoji)}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

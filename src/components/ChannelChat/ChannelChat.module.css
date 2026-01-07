@@ -487,3 +487,64 @@
   color: #666666;
 }
 
+/* + 버튼 - 리액션 추가 */
+.addReactionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.addReactionButton:hover {
+  background: #e8e8e8;
+  color: #333;
+  transform: scale(1.1);
+}
+
+/* 이모지 피커 팝업 */
+.emojiPickerOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: transparent;
+}
+
+.emojiPicker {
+  position: absolute;
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+}
+
+.emojiPickerButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 22px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.emojiPickerButton:hover {
+  background: #f2f2f2;
+  transform: scale(1.2);
+}
+

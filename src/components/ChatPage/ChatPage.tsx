@@ -68,7 +68,7 @@ export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded }: C
               <aside className={styles.sidebarFull}>
                 <ChannelList
                   onChannelSelect={handleChannelSelect}
-                  selectedChannelUrl={selectedChannel?.url}
+                  selectedChannelUrl={undefined}
                 />
               </aside>
             )

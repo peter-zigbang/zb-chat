@@ -137,6 +137,44 @@ async function registerTestUsers(userIds: string[], onProgress?: (current: numbe
 }
 
 /**
+ * 채널에 사용자 재초대
+ */
+export async function inviteUserToChannel(
+  operatorUserId: string,
+  channelUrl: string,
+  userIdsToInvite: string[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const sb = SendbirdChat.init({
+      appId: SENDBIRD_CONFIG.APP_ID,
+      modules: [new GroupChannelModule()],
+    }) as SendbirdChatWith<[GroupChannelModule]>;
+
+    // 운영자로 연결
+    await sb.connect(operatorUserId);
+
+    // 채널 가져오기
+    const channel = await sb.groupChannel.getChannel(channelUrl);
+
+    // 사용자 초대
+    await channel.inviteWithUserIds(userIdsToInvite);
+
+    console.log(`✅ 사용자 재초대 완료:`, {
+      channelUrl,
+      invitedUsers: userIdsToInvite,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('❌ 재초대 실패:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '알 수 없는 오류',
+    };
+  }
+}
+
+/**
  * A, B, C 사용자가 포함된 멀티 그룹 생성 (멀티 모드용)
  * 50명의 테스트 사용자를 먼저 등록한 후 그룹 생성
  */

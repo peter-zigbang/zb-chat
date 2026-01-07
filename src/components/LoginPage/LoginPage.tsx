@@ -1,8 +1,13 @@
 import { useState, FormEvent } from 'react';
 import styles from './LoginPage.module.css';
 
+interface UserInfo {
+  userId: string;
+  nickname: string;
+}
+
 interface Props {
-  onLogin: (userId: string, nickname: string) => void;
+  onLogin: (userInfo: UserInfo) => void;
   onDualMode?: () => void;
 }
 
@@ -22,7 +27,7 @@ export function LoginPage({ onLogin, onDualMode }: Props) {
     
     // 약간의 딜레이 후 로그인 처리
     setTimeout(() => {
-      onLogin(userId.trim(), nickname.trim());
+      onLogin({ userId: userId.trim(), nickname: nickname.trim() });
       setIsLoading(false);
     }, 500);
   };

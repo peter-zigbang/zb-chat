@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createDualUserTestGroup } from '@/utils/testGroupCreator';
+import { createDualUserTestGroup, inviteUserToChannel } from '@/utils/testGroupCreator';
 import styles from './DualChatView.module.css';
 
 interface UserConfig {
@@ -19,8 +19,13 @@ interface Props {
 export function DualChatView({ userA, userB, userC, onExit }: Props) {
   const [isCreating, setIsCreating] = useState(false);
   const [createResult, setCreateResult] = useState<string | null>(null);
-  const [panelCount, setPanelCount] = useState(userC ? 3 : 2);
+  // 고정 채널 URL (하드코딩)
+  const [lastChannelUrl, setLastChannelUrl] = useState<string | null>(
+    'sendbird_group_channel_335994112_e495ff4b37f8dae884a121fc7fcf499279b6f00f'
+  );
+  const [isInviting, setIsInviting] = useState(false);
 
+  // 항상 3명 모드
   const users = [userA, userB, userC].filter(Boolean) as UserConfig[];
 
   const handleCreate50Group = async () => {
@@ -32,12 +37,38 @@ export function DualChatView({ userA, userB, userC, onExit }: Props) {
     });
     
     if (result.success) {
+      setLastChannelUrl(result.channelUrl || null);
       setCreateResult(`✅ ${result.memberCount}명 그룹 생성 완료! 새로고침하세요.`);
     } else {
       setCreateResult(`❌ 실패: ${result.error}`);
     }
     
     setIsCreating(false);
+  };
+
+  // 나간 사용자 재초대 (user_a가 초대)
+  const handleReinviteUsers = async () => {
+    if (!lastChannelUrl) {
+      setCreateResult('❌ 먼저 그룹을 생성하세요');
+      return;
+    }
+    
+    setIsInviting(true);
+    setCreateResult('🔄 사용자 재초대 중...');
+    
+    const result = await inviteUserToChannel(
+      'user_a', // 운영자
+      lastChannelUrl,
+      ['user_a', 'user_b', 'user_c'] // 재초대할 사용자들
+    );
+    
+    if (result.success) {
+      setCreateResult('✅ 재초대 완료! 각 패널에서 채널을 다시 선택하세요.');
+    } else {
+      setCreateResult(`❌ 재초대 실패: ${result.error}`);
+    }
+    
+    setIsInviting(false);
   };
 
   // iframe URL 생성 (쿼리 파라미터로 사용자 정보 전달)
@@ -50,18 +81,12 @@ export function DualChatView({ userA, userB, userC, onExit }: Props) {
     return `${window.location.origin}/?${params.toString()}`;
   };
 
-  const togglePanelCount = () => {
-    setPanelCount(prev => prev === 2 ? 3 : 2);
-  };
-
-  const displayUsers = users.slice(0, panelCount);
-
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>🔄 멀티 채팅 테스트</h1>
         <div className={styles.headerInfo}>
-          {displayUsers.map((user, index) => (
+          {users.map((user, index) => (
             <span key={user.userId}>
               {index > 0 && <span className={styles.vs}>↔</span>}
               <span className={styles.userBadge} style={{ backgroundColor: user.color }}>
@@ -72,17 +97,19 @@ export function DualChatView({ userA, userB, userC, onExit }: Props) {
         </div>
         <div className={styles.headerActions}>
           <button 
-            onClick={togglePanelCount}
-            className={styles.toggleButton}
-          >
-            {panelCount === 2 ? '3명 모드' : '2명 모드'}
-          </button>
-          <button 
             onClick={handleCreate50Group} 
             className={styles.createButton}
             disabled={isCreating}
           >
             {isCreating ? '생성 중...' : '👥 50명 그룹 생성'}
+          </button>
+          <button 
+            onClick={handleReinviteUsers} 
+            className={styles.reinviteButton}
+            disabled={isInviting || !lastChannelUrl}
+            title={lastChannelUrl ? '마지막 생성된 채널에 A,B,C 재초대' : '먼저 그룹을 생성하세요'}
+          >
+            {isInviting ? '초대 중...' : '🔄 재초대'}
           </button>
           {createResult && (
             <span className={styles.createResult}>{createResult}</span>
@@ -93,8 +120,8 @@ export function DualChatView({ userA, userB, userC, onExit }: Props) {
         </div>
       </header>
 
-      <div className={`${styles.panels} ${panelCount === 3 ? styles.threePanel : ''}`}>
-        {displayUsers.map((user, index) => (
+      <div className={`${styles.panels} ${styles.threePanel}`}>
+        {users.map((user, index) => (
           <div 
             key={user.userId}
             className={styles.panel} 

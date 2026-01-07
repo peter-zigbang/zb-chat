@@ -62,6 +62,7 @@ export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded }: C
                 <ChannelChat 
                   channel={selectedChannel} 
                   onBack={handleBack}
+                  currentUserId={userId}
                 />
               </section>
             ) : (
@@ -88,6 +89,7 @@ export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded }: C
                   <ChannelChat 
                     channel={selectedChannel} 
                     onBack={handleBack}
+                    currentUserId={userId}
                   />
                 ) : (
                   <div className={styles.emptyState}>

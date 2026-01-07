@@ -1,0 +1,114 @@
+/* Figma 디자인 기반 메시지 액션 메뉴 */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: transparent;
+}
+
+.menu {
+  position: absolute;
+  min-width: 200px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0px 6px 12px rgba(26, 26, 26, 0.12);
+  overflow: hidden;
+  animation: fadeIn 0.15s ease-out;
+  z-index: 1001;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.menuItem:hover {
+  background: #f8f8f8;
+}
+
+.menuItem:active {
+  background: #f2f2f2;
+}
+
+.menuText {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: #1a1a1a;
+}
+
+.menuIcon {
+  color: #4d4d4d;
+  flex-shrink: 0;
+}
+
+/* 삭제 버튼 스타일 */
+.deleteItem .menuText {
+  color: #fa4e3e;
+}
+
+.deleteItem .menuIcon {
+  color: #fa4e3e;
+}
+
+.deleteItem:hover {
+  background: #fff5f4;
+}
+
+/* 구분선 */
+.divider {
+  height: 1px;
+  background: #f2f2f2;
+  margin: 0;
+}
+
+/* 이모지 섹션 */
+.emojiSection {
+  padding: 16px;
+}
+
+.emojiPlaceholder {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.emojiPlaceholder span {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s, transform 0.15s;
+  opacity: 0.5;
+}
+
+.emojiPlaceholder span:hover {
+  background: #f2f2f2;
+  transform: scale(1.15);
+  opacity: 1;
+}
+

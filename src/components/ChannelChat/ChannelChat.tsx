@@ -3,19 +3,30 @@ import Channel from '@sendbird/uikit-react/Channel';
 import type { GroupChannel } from '@sendbird/chat/groupChannel';
 import type { UserMessage, FileMessage } from '@sendbird/chat/message';
 import { CustomMessageInput } from '../CustomMessageInput/CustomMessageInput';
+import { MessageActionMenu } from '../MessageActionMenu/MessageActionMenu';
 import styles from './ChannelChat.module.css';
 
 type ReplyMessage = UserMessage | FileMessage;
 
+interface MenuState {
+  message: ReplyMessage;
+  position: { x: number; y: number };
+  isMyMessage: boolean;
+}
+
 interface Props {
   channel: GroupChannel;
   onBack: () => void;
+  currentUserId: string;
 }
 
 // zigbang의 GroupChannelScreen과 유사한 구현
-export function ChannelChat({ channel, onBack }: Props) {
+export function ChannelChat({ channel, onBack, currentUserId }: Props) {
   // Reply 상태 관리
   const [replyToMessage, setReplyToMessage] = useState<ReplyMessage | null>(null);
+  
+  // 메시지 액션 메뉴 상태
+  const [menuState, setMenuState] = useState<MenuState | null>(null);
 
   // 메시지 전송 로그 (디버깅용)
   const logMessage = useCallback((action: string, data: unknown) => {
@@ -33,6 +44,88 @@ export function ChannelChat({ channel, onBack }: Props) {
   const handleCancelReply = useCallback(() => {
     setReplyToMessage(null);
   }, []);
+
+  // 메시지 클릭 핸들러 - 액션 메뉴 표시
+  const handleMessageClick = useCallback((
+    e: React.MouseEvent,
+    message: ReplyMessage,
+    isMyMessage: boolean
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setMenuState({
+      message,
+      position: { x: e.clientX, y: e.clientY },
+      isMyMessage,
+    });
+  }, []);
+
+  // 메뉴 닫기
+  const handleCloseMenu = useCallback(() => {
+    setMenuState(null);
+  }, []);
+
+  // 복사 핸들러
+  const handleCopy = useCallback(() => {
+    if (!menuState) return;
+    
+    const message = menuState.message;
+    let textToCopy = '';
+    
+    if ('message' in message && message.message) {
+      textToCopy = message.message;
+    } else if ('name' in message && message.name) {
+      textToCopy = message.name;
+    }
+    
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        console.log('[ChannelChat] 메시지 복사됨:', textToCopy);
+      }).catch(err => {
+        console.error('[ChannelChat] 복사 실패:', err);
+      });
+    }
+  }, [menuState]);
+
+  // 답장 핸들러 (메뉴에서)
+  const handleReplyFromMenu = useCallback(() => {
+    if (!menuState) return;
+    handleReply(menuState.message);
+  }, [menuState, handleReply]);
+
+  // 삭제 핸들러
+  const handleDelete = useCallback(async () => {
+    if (!menuState) return;
+    
+    const message = menuState.message;
+    const senderUserId = message.sender?.userId || '';
+    
+    console.log('[ChannelChat] 삭제 시도:', {
+      currentUserId,
+      senderUserId,
+      messageId: message.messageId,
+    });
+    
+    const isMyMessage = senderUserId === currentUserId;
+    
+    // 다른 사람 메시지는 삭제 불가
+    if (!isMyMessage) {
+      alert(`자신의 메시지만 삭제할 수 있습니다.\n(발신자: ${senderUserId}, 현재: ${currentUserId})`);
+      return;
+    }
+    
+    if (confirm('이 메시지를 삭제하시겠습니까?')) {
+      try {
+        // Sendbird SDK를 통해 메시지 삭제
+        await channel.deleteMessage(message);
+        console.log('[ChannelChat] 메시지 삭제됨:', message.messageId);
+      } catch (error) {
+        console.error('[ChannelChat] 삭제 실패:', error);
+        alert('메시지 삭제에 실패했습니다.');
+      }
+    }
+  }, [menuState, channel, currentUserId]);
 
   return (
     <div className={styles.container}>
@@ -60,7 +153,7 @@ export function ChannelChat({ channel, onBack }: Props) {
             }
 
             const userOrFileMessage = message as ReplyMessage;
-            const isMyMessage = userOrFileMessage.sender?.userId === channel.myUserId;
+            const isMyMessage = userOrFileMessage.sender?.userId === currentUserId;
             
             // 메시지 텍스트 가져오기
             const getMessageText = () => {
@@ -104,8 +197,11 @@ export function ChannelChat({ channel, onBack }: Props) {
                   </div>
                 )}
 
-                {/* 메시지 본문 */}
-                <div className={styles.messageBubble}>
+                {/* 메시지 본문 - 클릭 시 액션 메뉴 표시 */}
+                <div 
+                  className={styles.messageBubble}
+                  onClick={(e) => handleMessageClick(e, userOrFileMessage, isMyMessage)}
+                >
                   {!isMyMessage && (
                     <span className={styles.senderName}>
                       {userOrFileMessage.sender?.nickname || '알 수 없음'}
@@ -127,6 +223,7 @@ export function ChannelChat({ channel, onBack }: Props) {
                           target="_blank" 
                           rel="noopener noreferrer"
                           className={styles.fileLink}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           📎 {userOrFileMessage.name}
                         </a>
@@ -147,18 +244,6 @@ export function ChannelChat({ channel, onBack }: Props) {
                     })}
                   </span>
                 </div>
-
-                {/* Reply 버튼 */}
-                <button 
-                  className={styles.replyButton}
-                  onClick={() => handleReply(userOrFileMessage)}
-                  title="답장"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="9 14 4 9 9 4" />
-                    <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
-                  </svg>
-                </button>
               </div>
             );
           }}
@@ -181,6 +266,19 @@ export function ChannelChat({ channel, onBack }: Props) {
           )}
         />
       </div>
+
+      {/* 메시지 액션 메뉴 */}
+      {menuState && (
+        <MessageActionMenu
+          message={menuState.message}
+          position={menuState.position}
+          isMyMessage={menuState.isMyMessage}
+          onClose={handleCloseMenu}
+          onCopy={handleCopy}
+          onReply={handleReplyFromMenu}
+          onDelete={handleDelete}
+        />
+      )}
     </div>
   );
 }

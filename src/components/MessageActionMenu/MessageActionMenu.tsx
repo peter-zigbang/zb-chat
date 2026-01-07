@@ -4,6 +4,9 @@ import styles from './MessageActionMenu.module.css';
 
 type Message = UserMessage | FileMessage;
 
+// 기본 이모지 키 목록
+const EMOJI_KEYS = ['👍', '✓', '😍', '😅', '😢', '😂'];
+
 interface Props {
   message: Message;
   position: { x: number; y: number };
@@ -12,6 +15,7 @@ interface Props {
   onCopy: () => void;
   onReply: () => void;
   onDelete: () => void;
+  onReaction: (emojiKey: string) => void;
 }
 
 export function MessageActionMenu({
@@ -22,6 +26,7 @@ export function MessageActionMenu({
   onCopy,
   onReply,
   onDelete,
+  onReaction,
 }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -87,6 +92,11 @@ export function MessageActionMenu({
     onClose();
   };
 
+  const handleReaction = (emojiKey: string) => {
+    onReaction(emojiKey);
+    onClose();
+  };
+
   return (
     <div className={styles.overlay}>
       <div
@@ -130,15 +140,19 @@ export function MessageActionMenu({
 
         <div className={styles.divider} />
 
-        {/* 이모지 영역 - 나중에 연동 예정 */}
+        {/* 이모지 영역 - Sendbird 리액션 연동 */}
         <div className={styles.emojiSection}>
-          <div className={styles.emojiPlaceholder}>
-            <span>👍</span>
-            <span>✓</span>
-            <span>😍</span>
-            <span>😅</span>
-            <span>😢</span>
-            <span>😂</span>
+          <div className={styles.emojiList}>
+            {EMOJI_KEYS.map((emoji) => (
+              <button
+                key={emoji}
+                className={styles.emojiButton}
+                onClick={() => handleReaction(emoji)}
+                title={`${emoji} 리액션 추가`}
+              >
+                {emoji}
+              </button>
+            ))}
           </div>
         </div>
       </div>

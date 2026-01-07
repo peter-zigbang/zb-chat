@@ -443,3 +443,47 @@
   transform: translateY(-50%) scale(1.1);
 }
 
+/* 리액션 컨테이너 - Figma 디자인 */
+.reactionsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  padding-left: 12px;
+}
+
+.myMessage .reactionsContainer {
+  justify-content: flex-end;
+  padding-left: 0;
+  padding-right: 12px;
+}
+
+.reactionBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #fff9e6;
+  border: 1px solid #ffe999;
+  border-radius: 20px;
+  font-size: 16px;
+  cursor: default;
+  transition: all 0.15s;
+}
+
+.reactionBadge:hover {
+  background: #fff3cc;
+}
+
+.reactionBadge.myReaction {
+  background: #fff3cc;
+  border-color: #ffd966;
+}
+
+.reactionCount {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666666;
+}
+

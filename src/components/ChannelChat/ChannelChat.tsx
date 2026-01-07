@@ -144,6 +144,35 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
     }
   }, [menuState, channel, currentUserId]);
 
+  // 리액션 핸들러 - Sendbird 리액션 API 사용
+  const handleReaction = useCallback(async (emojiKey: string) => {
+    if (!menuState) return;
+    
+    const message = menuState.message;
+    
+    try {
+      // 이미 같은 리액션이 있는지 확인
+      const existingReaction = message.reactions?.find(r => 
+        r.key === emojiKey && r.userIds.includes(currentUserId)
+      );
+      
+      if (existingReaction) {
+        // 이미 리액션이 있으면 제거
+        await channel.deleteReaction(message, emojiKey);
+        console.log('[ChannelChat] 리액션 제거:', emojiKey, message.messageId);
+      } else {
+        // 리액션 추가
+        await channel.addReaction(message, emojiKey);
+        console.log('[ChannelChat] 리액션 추가:', emojiKey, message.messageId);
+      }
+      
+      // 메뉴 닫기 (UIKit이 리액션 이벤트를 자동으로 처리하여 UI 업데이트)
+      setMenuState(null);
+    } catch (error) {
+      console.error('[ChannelChat] 리액션 실패:', error);
+    }
+  }, [menuState, channel, currentUserId]);
+
   return (
     <div className={styles.container}>
       {/* 헤더 - zigbang의 ChannelHeader와 유사 */}
@@ -320,6 +349,7 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                         )}
                       </>
                     )}
+
                   </div>
 
                   {/* 메타 정보 (읽음 수 + 시간) */}
@@ -336,6 +366,22 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                     </span>
                   </div>
                 </div>
+
+                {/* 리액션 표시 - 버블 바깥 아래에 (Figma 디자인) */}
+                {userOrFileMessage.reactions && userOrFileMessage.reactions.length > 0 && (
+                  <div className={styles.reactionsContainer}>
+                    {userOrFileMessage.reactions.map((reaction) => (
+                      <span 
+                        key={reaction.key} 
+                        className={`${styles.reactionBadge} ${reaction.userIds.includes(currentUserId) ? styles.myReaction : ''}`}
+                        title={`${reaction.userIds.length}명이 반응함`}
+                      >
+                        {reaction.key}
+                        <span className={styles.reactionCount}>{reaction.userIds.length}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           }}
@@ -369,6 +415,7 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
           onCopy={handleCopy}
           onReply={handleReplyFromMenu}
           onDelete={handleDelete}
+          onReaction={handleReaction}
         />
       )}
     </div>

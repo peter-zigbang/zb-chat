@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, KeyboardEvent, ChangeEvent } from 'react';
 import { useChannelContext } from '@sendbird/uikit-react/Channel/context';
+import type { UserMessage, FileMessage } from '@sendbird/chat/message';
 import styles from './CustomMessageInput.module.css';
 
 interface Props {
@@ -11,6 +12,10 @@ interface Props {
   onMessageSent?: (message: string) => void;
   // 파일 전송 콜백
   onFileSent?: (file: File) => void;
+  // Reply 대상 메시지
+  replyToMessage?: UserMessage | FileMessage | null;
+  // Reply 취소 콜백
+  onCancelReply?: () => void;
 }
 
 export function CustomMessageInput({
@@ -18,6 +23,8 @@ export function CustomMessageInput({
   placeholder = '메시지를 입력하세요...',
   onMessageSent,
   onFileSent,
+  replyToMessage,
+  onCancelReply,
 }: Props) {
   const [text, setText] = useState(initialText);
   const [isDragging, setIsDragging] = useState(false);
@@ -59,6 +66,8 @@ export function CustomMessageInput({
       if (text.trim()) {
         sendMessage({
           message: text.trim(),
+          // Reply 대상 메시지가 있으면 quoteMessage로 전달
+          ...(replyToMessage && { quoteMessage: replyToMessage }),
         });
         onMessageSent?.(text.trim());
       }
@@ -66,6 +75,9 @@ export function CustomMessageInput({
       // 입력 초기화
       setText('');
       setPreviewFiles([]);
+      
+      // Reply 초기화
+      onCancelReply?.();
       
       // textarea 높이 초기화
       if (textareaRef.current) {
@@ -76,7 +88,7 @@ export function CustomMessageInput({
     } finally {
       setIsSending(false);
     }
-  }, [text, previewFiles, currentGroupChannel, sendMessage, sendFileMessage, onMessageSent, onFileSent, isSending]);
+  }, [text, previewFiles, currentGroupChannel, sendMessage, sendFileMessage, onMessageSent, onFileSent, isSending, replyToMessage, onCancelReply]);
 
   // Enter 키 처리
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -207,6 +219,23 @@ export function CustomMessageInput({
   const isDisabled = !currentGroupChannel;
   const canSend = (text.trim() || previewFiles.length > 0) && !isSending;
 
+  // Reply 메시지 텍스트 가져오기
+  const getReplyMessageText = () => {
+    if (!replyToMessage) return '';
+    
+    // UserMessage인 경우
+    if ('message' in replyToMessage && replyToMessage.message) {
+      return replyToMessage.message;
+    }
+    
+    // FileMessage인 경우
+    if ('name' in replyToMessage && replyToMessage.name) {
+      return `📎 ${replyToMessage.name}`;
+    }
+    
+    return '메시지';
+  };
+
   return (
     <div 
       className={`${styles.container} ${isDragging ? styles.dragging : ''}`}
@@ -214,6 +243,33 @@ export function CustomMessageInput({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {/* Reply 프리뷰 영역 */}
+      {replyToMessage && (
+        <div className={styles.replyPreview}>
+          <div className={styles.replyBar} />
+          <div className={styles.replyContent}>
+            <span className={styles.replySender}>
+              {replyToMessage.sender?.nickname || '알 수 없음'}에게 답장
+            </span>
+            <span className={styles.replyText}>
+              {getReplyMessageText().slice(0, 60)}
+              {getReplyMessageText().length > 60 ? '...' : ''}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={styles.replyCancelButton}
+            onClick={onCancelReply}
+            title="답장 취소"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* 파일 미리보기 영역 */}
       {previewFiles.length > 0 && (
         <div className={styles.previewContainer}>

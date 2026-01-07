@@ -1,0 +1,203 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f8fafc;
+}
+
+.container.embedded {
+  height: 100%;
+}
+
+.container.embedded .sidebar {
+  width: 100%;
+  max-width: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-bottom: 1px solid #2d3748;
+}
+
+.headerLeft {
+  flex: 1;
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.headerCenter {
+  flex: 1;
+  text-align: center;
+}
+
+.userInfo {
+  padding: 8px 16px;
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 20px;
+  font-size: 0.875rem;
+  color: #a5b4fc;
+}
+
+.headerRight {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.dualModeButton {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dualModeButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+}
+
+.logoutButton {
+  padding: 8px 20px;
+  background: transparent;
+  border: 1px solid #6366f1;
+  border-radius: 8px;
+  color: #a5b4fc;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logoutButton:hover {
+  background: #6366f1;
+  color: white;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar {
+  width: 360px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* flexbox에서 자식이 스크롤 가능하게 */
+  overflow: hidden;
+}
+
+.chatArea {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* embedded 모드용 전체 화면 스타일 */
+.sidebarFull {
+  flex: 1;
+  background: #ffffff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* flexbox에서 자식이 스크롤 가능하게 */
+}
+
+.chatAreaFull {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.emptyState {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.emptyContent {
+  text-align: center;
+  max-width: 400px;
+  padding: 40px;
+}
+
+.emptyIcon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 24px;
+}
+
+.emptyContent h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.emptyContent p {
+  margin: 0 0 32px 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.codeInfo {
+  text-align: left;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.codeInfo h4 {
+  margin: 0 0 16px 0;
+  font-size: 0.95rem;
+  color: #1a1a2e;
+}
+
+.codeInfo ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.codeInfo li {
+  padding: 8px 0;
+  font-size: 0.85rem;
+  color: #4b5563;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.codeInfo li:last-child {
+  border-bottom: none;
+}
+
+.codeInfo code {
+  padding: 2px 8px;
+  background: #ede9fe;
+  color: #6366f1;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+}
+

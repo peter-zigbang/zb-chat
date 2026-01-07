@@ -1,0 +1,58 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+}
+
+.header {
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.title {
+  margin: 0 0 4px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #6366f1;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.listWrapper {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0; /* flexbox에서 스크롤 가능하게 */
+}
+
+/* Sendbird UIKit 스타일 오버라이드 */
+.listWrapper :global(.sendbird-channel-list) {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+.listWrapper :global(.sendbird-channel-list__body) {
+  height: 100% !important;
+  overflow-y: auto !important;
+}
+
+.listWrapper :global(.sendbird-channel-preview) {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.listWrapper :global(.sendbird-channel-preview:hover) {
+  background: #f8fafc;
+}
+
+.listWrapper :global(.sendbird-channel-preview--active) {
+  background: #ede9fe;
+  border-left: 3px solid #6366f1;
+}
+

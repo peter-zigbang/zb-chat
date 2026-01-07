@@ -1,0 +1,126 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.backButton {
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.backButton:hover {
+  background: #f3f4f6;
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.headerInfo {
+  flex: 1;
+}
+
+.channelName {
+  margin: 0 0 4px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.memberCount {
+  font-size: 0.75rem;
+  color: #6366f1;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.chatWrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Sendbird UIKit 스타일 오버라이드 */
+.chatWrapper :global(.sendbird-conversation) {
+  height: 100%;
+}
+
+.chatWrapper :global(.sendbird-message-input) {
+  border-top: 1px solid #e5e7eb;
+}
+
+/* 디버그 패널 */
+.debugPanel {
+  height: 200px;
+  border-top: 2px solid #6366f1;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+}
+
+.debugHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: #16213e;
+  color: #a5b4fc;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.clearButton {
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid #6366f1;
+  border-radius: 4px;
+  color: #a5b4fc;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clearButton:hover {
+  background: #6366f1;
+  color: white;
+}
+
+.debugLog {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+}
+
+.emptyLog {
+  color: #6b7280;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.logEntry {
+  margin: 0 0 8px 0;
+  padding: 8px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 4px;
+  color: #e0e7ff;
+  white-space: pre-wrap;
+  word-break: break-all;
+  border-left: 2px solid #6366f1;
+}
+

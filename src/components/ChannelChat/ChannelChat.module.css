@@ -395,6 +395,31 @@
   line-height: 20px;
 }
 
+/* 멘션 하이라이트 */
+.mention {
+  color: #6366f1;
+  font-weight: 500;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 1px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mention:hover {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+/* 나를 멘션한 경우 더 강조 */
+.mentionMe {
+  background: rgba(99, 102, 241, 0.25);
+  font-weight: 600;
+}
+
+.mentionMe:hover {
+  background: rgba(99, 102, 241, 0.35);
+}
+
 /* 메타 정보 (읽음 수 + 시간) */
 .messageMeta {
   display: flex;

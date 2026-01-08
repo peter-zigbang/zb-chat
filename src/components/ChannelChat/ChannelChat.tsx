@@ -465,6 +465,64 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
               return '';
             };
 
+            // 멘션된 사용자 목록
+            const mentionedUsers = userOrFileMessage.mentionedUsers || [];
+            
+            // 멘션 하이라이트 렌더링
+            const renderMessageWithMentions = (messageText: string) => {
+              if (mentionedUsers.length === 0) {
+                return messageText;
+              }
+
+              // @ 멘션 패턴 찾기
+              const mentionRegex = /@(\S+)/g;
+              const parts: (string | JSX.Element)[] = [];
+              let lastIndex = 0;
+              let match;
+
+              while ((match = mentionRegex.exec(messageText)) !== null) {
+                // 멘션 전 텍스트 추가
+                if (match.index > lastIndex) {
+                  parts.push(messageText.slice(lastIndex, match.index));
+                }
+
+                const mentionText = match[0]; // @nickname
+                const nickname = match[1]; // nickname
+                
+                // 멘션된 사용자인지 확인
+                const isMentioned = mentionedUsers.some(
+                  u => u.nickname === nickname || u.userId === nickname
+                );
+                
+                // 나를 멘션했는지 확인
+                const isMentioningMe = mentionedUsers.some(
+                  u => u.userId === currentUserId && (u.nickname === nickname || u.userId === nickname)
+                );
+
+                if (isMentioned) {
+                  parts.push(
+                    <span 
+                      key={match.index} 
+                      className={`${styles.mention} ${isMentioningMe ? styles.mentionMe : ''}`}
+                    >
+                      {mentionText}
+                    </span>
+                  );
+                } else {
+                  parts.push(mentionText);
+                }
+
+                lastIndex = match.index + match[0].length;
+              }
+
+              // 남은 텍스트 추가
+              if (lastIndex < messageText.length) {
+                parts.push(messageText.slice(lastIndex));
+              }
+
+              return parts.length > 0 ? parts : messageText;
+            };
+
             // Parent message (답장 대상) 정보
             const parentMessage = userOrFileMessage.parentMessage;
             const getParentMessageText = () => {
@@ -584,14 +642,16 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                           </div>
                         )}
                         
-                        {/* 텍스트 메시지 - 이미지/동영상은 파일명 숨김 */}
+                        {/* 텍스트 메시지 - 이미지/동영상은 파일명 숨김, 멘션 하이라이트 */}
                         {'message' in userOrFileMessage && userOrFileMessage.message && (
                           // 이미지나 동영상이 아닌 경우에만 텍스트 표시
                           !('url' in userOrFileMessage && (
                             userOrFileMessage.type?.startsWith('image/') || 
                             userOrFileMessage.type?.startsWith('video/')
                           )) && (
-                            <p className={styles.messageText}>{userOrFileMessage.message}</p>
+                            <p className={styles.messageText}>
+                              {renderMessageWithMentions(userOrFileMessage.message)}
+                            </p>
                           )
                         )}
                       </>

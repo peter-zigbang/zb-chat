@@ -1,7 +1,13 @@
-import { useState, useRef, useCallback, KeyboardEvent, ChangeEvent } from 'react';
+import { useState, useRef, useCallback, KeyboardEvent, ChangeEvent, useEffect } from 'react';
 import { useChannelContext } from '@sendbird/uikit-react/Channel/context';
 import type { UserMessage, FileMessage } from '@sendbird/chat/message';
+import type { Member } from '@sendbird/chat/groupChannel';
 import styles from './CustomMessageInput.module.css';
+
+interface MentionedUser {
+  userId: string;
+  nickname: string;
+}
 
 interface Props {
   // 초기 문의 텍스트 (직방 스타일)
@@ -31,14 +37,109 @@ export function CustomMessageInput({
   const [previewFiles, setPreviewFiles] = useState<{ file: File; preview: string; isVideo?: boolean }[]>([]);
   const [isSending, setIsSending] = useState(false);
   
+  // 멘션 관련 상태
+  const [showMentionList, setShowMentionList] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionStartIndex, setMentionStartIndex] = useState(-1);
+  const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [mentionedUsers, setMentionedUsers] = useState<MentionedUser[]>([]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mentionListRef = useRef<HTMLDivElement>(null);
 
   // Sendbird Channel Context
   // sendMessage: 텍스트 메시지 전송 (params: { message: string, quoteMessage?, mentionedUsers?, mentionTemplate? })
   // sendFileMessage: 파일 전송 (file: File, quoteMessage?) => Promise<FileMessage>
   const { currentGroupChannel, sendMessage, sendFileMessage } = useChannelContext();
+
+  // 채널 멤버 목록
+  const members = currentGroupChannel?.members || [];
+
+  // 멘션 쿼리에 따른 멤버 필터링
+  useEffect(() => {
+    if (!showMentionList || !currentGroupChannel) {
+      setFilteredMembers([]);
+      return;
+    }
+
+    const query = mentionQuery.toLowerCase();
+    const filtered = members.filter(member => {
+      const nickname = member.nickname?.toLowerCase() || '';
+      const userId = member.userId.toLowerCase();
+      return nickname.includes(query) || userId.includes(query);
+    });
+    
+    setFilteredMembers(filtered.slice(0, 10)); // 최대 10명
+    setSelectedMentionIndex(0);
+  }, [showMentionList, mentionQuery, members, currentGroupChannel]);
+
+  // 멘션 시작 감지
+  const detectMention = useCallback((value: string, cursorPosition: number) => {
+    // 커서 위치에서 뒤로 @ 찾기
+    let atIndex = -1;
+    for (let i = cursorPosition - 1; i >= 0; i--) {
+      const char = value[i];
+      if (char === '@') {
+        atIndex = i;
+        break;
+      }
+      // 공백이나 줄바꿈을 만나면 중단
+      if (char === ' ' || char === '\n') {
+        break;
+      }
+    }
+
+    if (atIndex >= 0) {
+      const query = value.slice(atIndex + 1, cursorPosition);
+      // @ 바로 앞이 공백이거나 문장 시작인 경우만 멘션으로 처리
+      if (atIndex === 0 || value[atIndex - 1] === ' ' || value[atIndex - 1] === '\n') {
+        setShowMentionList(true);
+        setMentionQuery(query);
+        setMentionStartIndex(atIndex);
+        return;
+      }
+    }
+
+    setShowMentionList(false);
+    setMentionQuery('');
+    setMentionStartIndex(-1);
+  }, []);
+
+  // 멘션 선택
+  const handleSelectMention = useCallback((member: Member) => {
+    if (mentionStartIndex < 0 || !textareaRef.current) return;
+
+    const beforeMention = text.slice(0, mentionStartIndex);
+    const afterMention = text.slice(textareaRef.current.selectionStart);
+    const mentionText = `@${member.nickname} `;
+    
+    const newText = beforeMention + mentionText + afterMention;
+    setText(newText);
+    
+    // 멘션된 사용자 추가 (중복 제거)
+    setMentionedUsers(prev => {
+      const exists = prev.some(u => u.userId === member.userId);
+      if (exists) return prev;
+      return [...prev, { userId: member.userId, nickname: member.nickname || member.userId }];
+    });
+
+    // 멘션 목록 닫기
+    setShowMentionList(false);
+    setMentionQuery('');
+    setMentionStartIndex(-1);
+
+    // 커서 위치 조정
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newCursorPos = beforeMention.length + mentionText.length;
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        textareaRef.current.focus();
+      }
+    }, 0);
+  }, [text, mentionStartIndex]);
 
   // 텍스트 메시지 전송
   const handleSendMessage = useCallback(async () => {
@@ -64,10 +165,22 @@ export function CustomMessageInput({
 
       // 텍스트 메시지 전송
       if (text.trim()) {
+        // 멘션된 사용자 ID 목록 생성
+        const mentionedUserIds = mentionedUsers
+          .filter(u => text.includes(`@${u.nickname}`))
+          .map(u => u.userId);
+
+        console.log('[CustomMessageInput] Sending with mentions:', mentionedUserIds);
+
         sendMessage({
           message: text.trim(),
           // Reply 대상 메시지가 있으면 quoteMessage로 전달
           ...(replyToMessage && { quoteMessage: replyToMessage }),
+          // 멘션된 사용자들
+          ...(mentionedUserIds.length > 0 && { 
+            mentionedUserIds,
+            mentionType: 'users',
+          }),
         });
         onMessageSent?.(text.trim());
       }
@@ -75,6 +188,7 @@ export function CustomMessageInput({
       // 입력 초기화
       setText('');
       setPreviewFiles([]);
+      setMentionedUsers([]);
       
       // Reply 초기화
       onCancelReply?.();
@@ -92,6 +206,35 @@ export function CustomMessageInput({
 
   // Enter 키 처리
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // 멘션 목록이 열려있을 때
+    if (showMentionList && filteredMembers.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedMentionIndex(prev => 
+          prev < filteredMembers.length - 1 ? prev + 1 : 0
+        );
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedMentionIndex(prev => 
+          prev > 0 ? prev - 1 : filteredMembers.length - 1
+        );
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        handleSelectMention(filteredMembers[selectedMentionIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowMentionList(false);
+        return;
+      }
+    }
+
+    // 일반 Enter 처리 (메시지 전송)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -208,7 +351,13 @@ export function CustomMessageInput({
 
   // Textarea 자동 높이 조절
   const handleTextChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value);
+    const value = e.target.value;
+    const cursorPosition = e.target.selectionStart;
+    
+    setText(value);
+    
+    // 멘션 감지
+    detectMention(value, cursorPosition);
     
     // 자동 높이 조절
     const textarea = e.target;
@@ -297,6 +446,35 @@ export function CustomMessageInput({
               </button>
               <span className={styles.fileName}>{item.file.name}</span>
             </div>
+          ))}
+        </div>
+      )}
+
+      {/* 멘션 목록 팝업 */}
+      {showMentionList && filteredMembers.length > 0 && (
+        <div ref={mentionListRef} className={styles.mentionList}>
+          <div className={styles.mentionHeader}>
+            멤버 선택 <span className={styles.mentionHint}>↑↓ 이동, Enter 선택</span>
+          </div>
+          {filteredMembers.map((member, index) => (
+            <button
+              key={member.userId}
+              className={`${styles.mentionItem} ${index === selectedMentionIndex ? styles.selected : ''}`}
+              onClick={() => handleSelectMention(member)}
+              onMouseEnter={() => setSelectedMentionIndex(index)}
+            >
+              <div className={styles.mentionAvatar}>
+                {member.profileUrl ? (
+                  <img src={member.profileUrl} alt={member.nickname} />
+                ) : (
+                  <span>{(member.nickname || member.userId)[0]?.toUpperCase()}</span>
+                )}
+              </div>
+              <div className={styles.mentionInfo}>
+                <span className={styles.mentionNickname}>{member.nickname || member.userId}</span>
+                <span className={styles.mentionUserId}>@{member.userId}</span>
+              </div>
+            </button>
           ))}
         </div>
       )}

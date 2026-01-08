@@ -343,3 +343,124 @@
   font-weight: 600;
 }
 
+/* 멘션 목록 팝업 */
+.mentionList {
+  position: absolute;
+  bottom: 100%;
+  left: 16px;
+  right: 16px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  margin-bottom: 8px;
+  z-index: 100;
+  animation: slideUp 0.15s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mentionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 12px 12px 0 0;
+}
+
+.mentionHint {
+  font-size: 11px;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+.mentionItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.mentionItem:hover,
+.mentionItem.selected {
+  background: #f0f4ff;
+}
+
+.mentionItem.selected {
+  background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%);
+}
+
+.mentionItem:last-child {
+  border-radius: 0 0 12px 12px;
+}
+
+.mentionAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.mentionAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mentionAvatar span {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mentionInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mentionNickname {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mentionUserId {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

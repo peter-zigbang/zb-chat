@@ -1,7 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import Channel from '@sendbird/uikit-react/Channel';
+import SendbirdChat from '@sendbird/chat';
 import type { GroupChannel } from '@sendbird/chat/groupChannel';
 import type { UserMessage, FileMessage, Reaction } from '@sendbird/chat/message';
+import type { User } from '@sendbird/chat';
 import { CustomMessageInput } from '../CustomMessageInput/CustomMessageInput';
 import { MessageActionMenu } from '../MessageActionMenu/MessageActionMenu';
 import { ReactionUserList } from '../ReactionUserList/ReactionUserList';
@@ -45,6 +47,12 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
   
   // Channel 강제 리렌더링을 위한 key
   const [channelKey, setChannelKey] = useState(0);
+  
+  // 설정 메뉴 상태
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  
+  // 차단된 사용자 목록
+  const [blockedUsers, setBlockedUsers] = useState<User[]>([]);
 
   // 메시지 전송 로그 (디버깅용)
   const logMessage = useCallback((action: string, data: unknown) => {
@@ -52,6 +60,80 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
     const log = `[${timestamp}] ${action}: ${JSON.stringify(data, null, 2)}`;
     console.log(log);
   }, []);
+
+  // 채널의 다른 멤버 가져오기 (1:1 채팅 기준)
+  const getOtherMember = useCallback(() => {
+    return channel.members.find(m => m.userId !== currentUserId);
+  }, [channel.members, currentUserId]);
+
+  // 차단된 사용자 목록 불러오기
+  const loadBlockedUsers = useCallback(async () => {
+    try {
+      const sb = SendbirdChat.instance;
+      if (!sb) return;
+      
+      const query = sb.createBlockedUserListQuery();
+      const users = await query.next();
+      setBlockedUsers(users);
+      console.log('[ChannelChat] 차단된 사용자 목록:', users.map(u => u.userId));
+    } catch (error) {
+      console.error('[ChannelChat] 차단 목록 로드 실패:', error);
+    }
+  }, []);
+
+  // 컴포넌트 마운트 시 차단 목록 로드
+  useEffect(() => {
+    loadBlockedUsers();
+  }, [loadBlockedUsers]);
+
+  // 특정 사용자가 차단되었는지 확인
+  const isUserBlocked = useCallback((userId: string) => {
+    return blockedUsers.some(u => u.userId === userId);
+  }, [blockedUsers]);
+
+  // 사용자 차단
+  const handleBlockUser = useCallback(async (userId: string) => {
+    try {
+      const sb = SendbirdChat.instance;
+      if (!sb) {
+        alert('Sendbird 연결이 필요합니다.');
+        return;
+      }
+      
+      if (confirm(`${userId} 사용자를 차단하시겠습니까?\n차단하면 상대방의 메시지를 받지 않습니다.`)) {
+        await sb.blockUser(userId);
+        console.log('[ChannelChat] 사용자 차단됨:', userId);
+        alert(`${userId} 사용자가 차단되었습니다.`);
+        await loadBlockedUsers();
+        setShowSettingsMenu(false);
+      }
+    } catch (error) {
+      console.error('[ChannelChat] 차단 실패:', error);
+      alert('사용자 차단에 실패했습니다.');
+    }
+  }, [loadBlockedUsers]);
+
+  // 사용자 차단 해제
+  const handleUnblockUser = useCallback(async (userId: string) => {
+    try {
+      const sb = SendbirdChat.instance;
+      if (!sb) {
+        alert('Sendbird 연결이 필요합니다.');
+        return;
+      }
+      
+      if (confirm(`${userId} 사용자의 차단을 해제하시겠습니까?`)) {
+        await sb.unblockUser(userId);
+        console.log('[ChannelChat] 차단 해제됨:', userId);
+        alert(`${userId} 사용자의 차단이 해제되었습니다.`);
+        await loadBlockedUsers();
+        setShowSettingsMenu(false);
+      }
+    } catch (error) {
+      console.error('[ChannelChat] 차단 해제 실패:', error);
+      alert('차단 해제에 실패했습니다.');
+    }
+  }, [loadBlockedUsers]);
 
   // Reply 버튼 클릭 핸들러
   const handleReply = useCallback((message: ReplyMessage) => {
@@ -276,6 +358,71 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
             멤버 {channel.memberCount}명 | GroupChannelScreen
           </span>
         </div>
+        
+        {/* 설정 버튼 */}
+        <div className={styles.settingsWrapper}>
+          <button 
+            className={styles.settingsButton}
+            onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+            title="설정"
+          >
+            ⚙️
+          </button>
+          
+          {/* 설정 드롭다운 메뉴 */}
+          {showSettingsMenu && (
+            <>
+              <div 
+                className={styles.settingsOverlay}
+                onClick={() => setShowSettingsMenu(false)}
+              />
+              <div className={styles.settingsMenu}>
+                {/* 상대방 차단/차단해제 */}
+                {(() => {
+                  const otherMember = getOtherMember();
+                  if (!otherMember) return null;
+                  
+                  const blocked = isUserBlocked(otherMember.userId);
+                  
+                  return (
+                    <button
+                      className={`${styles.settingsMenuItem} ${blocked ? styles.unblockItem : styles.blockItem}`}
+                      onClick={() => blocked 
+                        ? handleUnblockUser(otherMember.userId) 
+                        : handleBlockUser(otherMember.userId)
+                      }
+                    >
+                      <span className={styles.menuIcon}>{blocked ? '✓' : '🚫'}</span>
+                      {blocked ? `${otherMember.nickname || otherMember.userId} 차단 해제` : `${otherMember.nickname || otherMember.userId} 차단`}
+                    </button>
+                  );
+                })()}
+                
+                {/* 차단된 사용자 목록 보기 */}
+                {blockedUsers.length > 0 && (
+                  <>
+                    <div className={styles.menuDivider} />
+                    <div className={styles.blockedListHeader}>
+                      차단된 사용자 ({blockedUsers.length})
+                    </div>
+                    {blockedUsers.map(user => (
+                      <button
+                        key={user.userId}
+                        className={styles.blockedUserItem}
+                        onClick={() => handleUnblockUser(user.userId)}
+                      >
+                        <span className={styles.blockedUserInfo}>
+                          {user.nickname || user.userId}
+                        </span>
+                        <span className={styles.unblockLabel}>해제</span>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 채팅 영역 */}
@@ -291,6 +438,10 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
 
             const userOrFileMessage = message as ReplyMessage;
             const isMyMessage = userOrFileMessage.sender?.userId === currentUserId;
+            const senderId = userOrFileMessage.sender?.userId || '';
+            
+            // 차단된 사용자의 메시지인지 확인
+            const isBlockedUserMessage = !isMyMessage && isUserBlocked(senderId);
             
             // 삭제된 메시지인지 확인
             let isDeletedMessage = false;
@@ -332,8 +483,8 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
 
             return (
               <div className={`${styles.messageWrapper} ${isMyMessage ? styles.myMessage : styles.otherMessage}`}>
-                {/* 보낸 사람 이름 - 버블 바깥 위에 표시 (다른 사람 메시지만) */}
-                {!isMyMessage && !isDeletedMessage && (
+                {/* 보낸 사람 이름 - 버블 바깥 위에 표시 (다른 사람 메시지만, 삭제/차단 메시지 제외) */}
+                {!isMyMessage && !isDeletedMessage && !isBlockedUserMessage && (
                   <span className={styles.senderName}>
                     {userOrFileMessage.sender?.nickname || '알 수 없음'}
                   </span>
@@ -343,11 +494,11 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                 <div className={styles.messageContainer}>
                   {/* 메시지 버블 */}
                   <div 
-                    className={`${styles.messageBubble} ${isDeletedMessage ? styles.deletedMessage : ''} ${parentMessage ? styles.hasReply : ''}`}
-                    onClick={(e) => !isDeletedMessage && handleMessageClick(e, userOrFileMessage, isMyMessage)}
+                    className={`${styles.messageBubble} ${isDeletedMessage || isBlockedUserMessage ? styles.deletedMessage : ''} ${parentMessage && !isBlockedUserMessage ? styles.hasReply : ''}`}
+                    onClick={(e) => !isDeletedMessage && !isBlockedUserMessage && handleMessageClick(e, userOrFileMessage, isMyMessage)}
                   >
-                    {/* 답장 대상 메시지 표시 - 버블 안에 포함 */}
-                    {parentMessage && !isDeletedMessage && (
+                    {/* 답장 대상 메시지 표시 - 버블 안에 포함 (삭제/차단 메시지 제외) */}
+                    {parentMessage && !isDeletedMessage && !isBlockedUserMessage && (
                       <div className={styles.replyPreview}>
                         <span className={styles.replySender}>
                           {parentMessage.sender?.nickname || '알 수 없음'}에게 답장
@@ -359,8 +510,14 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                       </div>
                     )}
 
-                    {/* 삭제된 메시지 */}
-                    {isDeletedMessage ? (
+                    {/* 차단된 사용자 메시지 */}
+                    {isBlockedUserMessage ? (
+                      <p className={styles.deletedText}>
+                        <span className={styles.deletedIcon}>🚫</span>
+                        차단된 사용자의 메시지입니다.
+                      </p>
+                    ) : isDeletedMessage ? (
+                      /* 삭제된 메시지 */
                       <p className={styles.deletedText}>
                         <span className={styles.deletedIcon}>🚫</span>
                         삭제된 메시지입니다.
@@ -457,8 +614,8 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                   </div>
                 </div>
 
-                {/* 리액션 표시 - 버블 바깥 아래에 (Figma 디자인) */}
-                {userOrFileMessage.reactions && userOrFileMessage.reactions.length > 0 && (
+                {/* 리액션 표시 - 버블 바깥 아래에 (Figma 디자인) - 차단된 메시지는 제외 */}
+                {!isBlockedUserMessage && userOrFileMessage.reactions && userOrFileMessage.reactions.length > 0 && (
                   <div className={styles.reactionsContainer}>
                     {userOrFileMessage.reactions.map((reaction) => (
                       <button 

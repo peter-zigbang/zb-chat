@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { GroupChannel } from '@sendbird/chat/groupChannel';
+import Channel from '@sendbird/uikit-react/Channel';
 import { SendbirdProviderWrapper } from '@/providers/SendbirdProvider';
 import { ChannelList } from '../ChannelList/ChannelList';
 import { ChannelChat } from '../ChannelChat/ChannelChat';
@@ -8,7 +9,7 @@ import type { ChatPageProps } from '@/types';
 import styles from './ChatPage.module.css';
 
 // zigbang의 전체 채팅 구조와 유사
-export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded }: ChatPageProps) {
+export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded, uiMode = 'custom' }: ChatPageProps) {
   const [selectedChannel, setSelectedChannel] = useState<GroupChannel | null>(null);
 
   const handleChannelSelect = useCallback((channel: GroupChannel) => {
@@ -59,11 +60,22 @@ export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded }: C
           {embedded ? (
             selectedChannel ? (
               <section className={styles.chatAreaFull}>
-                <ChannelChat 
-                  channel={selectedChannel} 
-                  onBack={handleBack}
-                  currentUserId={userId}
-                />
+                {uiMode === 'basic' ? (
+                  // 샌드버드 기본 UI
+                  <div className={styles.basicChannelWrapper}>
+                    <button onClick={handleBack} className={styles.basicBackButton}>
+                      ← 뒤로
+                    </button>
+                    <Channel channelUrl={selectedChannel.url} />
+                  </div>
+                ) : (
+                  // 커스텀 UI
+                  <ChannelChat 
+                    channel={selectedChannel} 
+                    onBack={handleBack}
+                    currentUserId={userId}
+                  />
+                )}
               </section>
             ) : (
               <aside className={styles.sidebarFull}>
@@ -86,11 +98,19 @@ export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded }: C
               {/* 채팅 영역 (GroupChannelScreen) */}
               <section className={styles.chatArea}>
                 {selectedChannel ? (
-                  <ChannelChat 
-                    channel={selectedChannel} 
-                    onBack={handleBack}
-                    currentUserId={userId}
-                  />
+                  uiMode === 'basic' ? (
+                    // 샌드버드 기본 UI
+                    <div className={styles.basicChannelWrapper}>
+                      <Channel channelUrl={selectedChannel.url} />
+                    </div>
+                  ) : (
+                    // 커스텀 UI
+                    <ChannelChat 
+                      channel={selectedChannel} 
+                      onBack={handleBack}
+                      currentUserId={userId}
+                    />
+                  )
                 ) : (
                   <div className={styles.emptyState}>
                     <div className={styles.emptyContent}>

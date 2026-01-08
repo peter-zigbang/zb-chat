@@ -9,6 +9,9 @@ export interface LoginPageProps {
   onLogin: (userInfo: UserInfo) => void;
 }
 
+// UI 모드 타입
+export type UIMode = 'basic' | 'custom';
+
 // 채팅 페이지 Props
 export interface ChatPageProps {
   userId: string;
@@ -16,6 +19,7 @@ export interface ChatPageProps {
   onLogout?: () => void;
   onDualMode?: () => void;
   embedded?: boolean;
+  uiMode?: UIMode;
 }
 
 // 채널 정보 타입 (zigbang 스타일)

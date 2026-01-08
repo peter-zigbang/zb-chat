@@ -12,6 +12,7 @@ function getQueryParams() {
     userId: params.get('userId'),
     nickname: params.get('nickname'),
     embedded: params.get('embedded') === 'true',
+    uiMode: (params.get('uiMode') as 'basic' | 'custom') || 'custom',
   };
 }
 
@@ -85,6 +86,7 @@ function App() {
       onLogout={queryParams.embedded ? undefined : handleLogout}
       onDualMode={queryParams.embedded ? undefined : () => setViewMode('dual')}
       embedded={queryParams.embedded}
+      uiMode={queryParams.uiMode}
     />
   );
 }

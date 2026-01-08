@@ -15,6 +15,8 @@ interface Props {
   onExit: () => void;
 }
 
+type UIMode = 'custom' | 'basic';
+
 // iframe을 사용해서 각 사용자를 완전히 분리된 환경에서 실행
 export function DualChatView({ userA, userB, userC, onExit }: Props) {
   const [isCreating, setIsCreating] = useState(false);
@@ -24,6 +26,9 @@ export function DualChatView({ userA, userB, userC, onExit }: Props) {
     'sendbird_group_channel_335994112_e495ff4b37f8dae884a121fc7fcf499279b6f00f'
   );
   const [isInviting, setIsInviting] = useState(false);
+  
+  // UI 모드: 샌드버드 기본 vs 커스텀
+  const [uiMode, setUIMode] = useState<UIMode>('custom');
 
   // 항상 3명 모드
   const users = [userA, userB, userC].filter(Boolean) as UserConfig[];
@@ -77,6 +82,7 @@ export function DualChatView({ userA, userB, userC, onExit }: Props) {
       userId: user.userId,
       nickname: user.nickname,
       embedded: 'true',
+      uiMode: uiMode,
     });
     return `${window.location.origin}/?${params.toString()}`;
   };
@@ -84,18 +90,25 @@ export function DualChatView({ userA, userB, userC, onExit }: Props) {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.title}>🔄 멀티 채팅 테스트</h1>
-        <div className={styles.headerInfo}>
-          {users.map((user, index) => (
-            <span key={user.userId}>
-              {index > 0 && <span className={styles.vs}>↔</span>}
-              <span className={styles.userBadge} style={{ backgroundColor: user.color }}>
-                {String.fromCharCode(65 + index)}: {user.nickname}
-              </span>
-            </span>
-          ))}
-        </div>
         <div className={styles.headerActions}>
+          {/* UI 모드 토글 버튼 */}
+          <div className={styles.uiModeToggle}>
+            <button 
+              className={`${styles.modeButton} ${uiMode === 'basic' ? styles.active : ''}`}
+              onClick={() => setUIMode('basic')}
+            >
+              📦 샌드버드 기본
+            </button>
+            <button 
+              className={`${styles.modeButton} ${uiMode === 'custom' ? styles.active : ''}`}
+              onClick={() => setUIMode('custom')}
+            >
+              🎨 커스텀
+            </button>
+          </div>
+          
+          <div className={styles.separator} />
+          
           <button 
             onClick={handleCreate50Group} 
             className={styles.createButton}
@@ -134,6 +147,7 @@ export function DualChatView({ userA, userB, userC, onExit }: Props) {
               </span>
             </div>
             <iframe 
+              key={`${user.userId}-${uiMode}`}
               src={getIframeUrl(user)}
               className={styles.iframe}
               title={`User ${String.fromCharCode(65 + index)} Chat`}

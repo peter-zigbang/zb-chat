@@ -127,6 +127,36 @@
   overflow: hidden;
 }
 
+/* 샌드버드 기본 UI 래퍼 */
+.basicChannelWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.basicChannelWrapper > div {
+  flex: 1;
+}
+
+.basicBackButton {
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.basicBackButton:hover {
+  background: #f1f5f9;
+  color: #1f2937;
+}
+
 .emptyState {
   flex: 1;
   display: flex;

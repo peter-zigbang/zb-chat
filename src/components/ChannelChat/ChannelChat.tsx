@@ -26,10 +26,12 @@ interface Props {
   channel: GroupChannel;
   onBack: () => void;
   currentUserId: string;
+  hideHeader?: boolean;
+  showDebug?: boolean; // 디버그 정보 화면에 표시
 }
 
 // zigbang의 GroupChannelScreen과 유사한 구현
-export function ChannelChat({ channel, onBack, currentUserId }: Props) {
+export function ChannelChat({ channel, onBack, currentUserId, hideHeader = false, showDebug = false }: Props) {
   // Reply 상태 관리
   const [replyToMessage, setReplyToMessage] = useState<ReplyMessage | null>(null);
   
@@ -81,9 +83,18 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
     }
   }, []);
 
-  // 컴포넌트 마운트 시 차단 목록 로드
+  // 컴포넌트 마운트 시 차단 목록 로드 및 이벤트 리스너 등록
   useEffect(() => {
     loadBlockedUsers();
+    
+    // 차단 변경 이벤트 감지 (공통 헤더에서 차단 시)
+    const handleBlockListChanged = () => {
+      console.log('[ChannelChat] 차단 목록 변경 감지, 다시 로드');
+      loadBlockedUsers();
+    };
+    
+    window.addEventListener('blockListChanged', handleBlockListChanged);
+    return () => window.removeEventListener('blockListChanged', handleBlockListChanged);
   }, [loadBlockedUsers]);
 
   // 특정 사용자가 차단되었는지 확인
@@ -347,83 +358,86 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
 
   return (
     <div className={styles.container}>
-      {/* 헤더 - zigbang의 ChannelHeader와 유사 */}
-      <div className={styles.header}>
-        <button onClick={onBack} className={styles.backButton}>
-          ← 뒤로
-        </button>
-        <div className={styles.headerInfo}>
-          <h2 className={styles.channelName}>{channel.name || '채팅방'}</h2>
-          <span className={styles.memberCount}>
-            멤버 {channel.memberCount}명 | GroupChannelScreen
-          </span>
-        </div>
-        
-        {/* 설정 버튼 */}
-        <div className={styles.settingsWrapper}>
-          <button 
-            className={styles.settingsButton}
-            onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-            title="설정"
-          >
-            ⚙️
+      {/* 헤더 - hideHeader가 true면 숨김 */}
+      {!hideHeader && (
+        <div className={styles.header}>
+          <button onClick={onBack} className={styles.backButton}>
+            ←
           </button>
+          <div className={styles.headerInfo}>
+            <h2 className={styles.channelName}>{channel.name || '채팅방'}</h2>
+          </div>
           
-          {/* 설정 드롭다운 메뉴 */}
-          {showSettingsMenu && (
-            <>
-              <div 
-                className={styles.settingsOverlay}
-                onClick={() => setShowSettingsMenu(false)}
-              />
-              <div className={styles.settingsMenu}>
-                {/* 상대방 차단/차단해제 */}
-                {(() => {
-                  const otherMember = getOtherMember();
-                  if (!otherMember) return null;
-                  
-                  const blocked = isUserBlocked(otherMember.userId);
-                  
-                  return (
-                    <button
-                      className={`${styles.settingsMenuItem} ${blocked ? styles.unblockItem : styles.blockItem}`}
-                      onClick={() => blocked 
-                        ? handleUnblockUser(otherMember.userId) 
-                        : handleBlockUser(otherMember.userId)
-                      }
-                    >
-                      <span className={styles.menuIcon}>{blocked ? '✓' : '🚫'}</span>
-                      {blocked ? `${otherMember.nickname || otherMember.userId} 차단 해제` : `${otherMember.nickname || otherMember.userId} 차단`}
-                    </button>
-                  );
-                })()}
-                
-                {/* 차단된 사용자 목록 보기 */}
-                {blockedUsers.length > 0 && (
-                  <>
-                    <div className={styles.menuDivider} />
-                    <div className={styles.blockedListHeader}>
-                      차단된 사용자 ({blockedUsers.length})
+          {/* 차단 버튼 */}
+          {(() => {
+            const otherMember = getOtherMember();
+            if (!otherMember) return null;
+            
+            const blocked = isUserBlocked(otherMember.userId);
+            
+            return (
+              <button
+                className={`${styles.headerBlockButton} ${blocked ? styles.blocked : ''}`}
+                onClick={() => blocked 
+                  ? handleUnblockUser(otherMember.userId) 
+                  : handleBlockUser(otherMember.userId)
+                }
+                title={blocked ? '차단 해제' : '차단'}
+              >
+                {blocked ? '차단됨' : '차단'}
+              </button>
+            );
+          })()}
+          
+          {/* 설정 버튼 */}
+          <div className={styles.settingsWrapper}>
+            <button 
+              className={styles.settingsButton}
+              onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+              title="설정"
+            >
+              ⚙️
+            </button>
+            
+            {/* 설정 드롭다운 메뉴 */}
+            {showSettingsMenu && (
+              <>
+                <div 
+                  className={styles.settingsOverlay}
+                  onClick={() => setShowSettingsMenu(false)}
+                />
+                <div className={styles.settingsMenu}>
+                  {/* 차단된 사용자 목록 보기 */}
+                  {blockedUsers.length > 0 && (
+                    <>
+                      <div className={styles.blockedListHeader}>
+                        차단된 사용자 ({blockedUsers.length})
+                      </div>
+                      {blockedUsers.map(user => (
+                        <button
+                          key={user.userId}
+                          className={styles.blockedUserItem}
+                          onClick={() => handleUnblockUser(user.userId)}
+                        >
+                          <span className={styles.blockedUserInfo}>
+                            {user.nickname || user.userId}
+                          </span>
+                          <span className={styles.unblockLabel}>해제</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {blockedUsers.length === 0 && (
+                    <div className={styles.emptyBlockedList}>
+                      차단된 사용자가 없습니다
                     </div>
-                    {blockedUsers.map(user => (
-                      <button
-                        key={user.userId}
-                        className={styles.blockedUserItem}
-                        onClick={() => handleUnblockUser(user.userId)}
-                      >
-                        <span className={styles.blockedUserInfo}>
-                          {user.nickname || user.userId}
-                        </span>
-                        <span className={styles.unblockLabel}>해제</span>
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
-            </>
-          )}
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 채팅 영역 */}
       <div className={styles.chatWrapper}>
@@ -431,6 +445,19 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
           key={`channel-${channel.url}-${channelKey}`}
           channelUrl={channel.url}
           renderMessage={({ message }) => {
+            // 🟡 메시지 객체 전체 출력 (disabled)
+            // console.warn('🟡🟡🟡 [Message Object] 🟡🟡🟡');
+            // console.table({
+            //   messageId: message.messageId,
+            //   messageType: message.messageType,
+            //   message: 'message' in message ? (message.message as string)?.slice(0, 50) : undefined,
+            //   data: message.data,
+            //   senderId: message.sender?.userId,
+            //   senderNickname: message.sender?.nickname,
+            //   createdAt: new Date(message.createdAt).toLocaleString(),
+            // });
+            // console.log('🟡 Full Message:', message);
+            
             // AdminMessage는 reply 지원 안함
             if (message.messageType === 'admin') {
               return undefined; // 기본 렌더링 사용
@@ -697,6 +724,40 @@ export function ChannelChat({ channel, onBack, currentUserId }: Props) {
                       +
                     </button>
                   </div>
+                )}
+                
+                {/* 🟡 디버그 정보 표시 (토글 가능) */}
+                {showDebug && (
+                  <details 
+                    className={styles.debugInfo}
+                    onToggle={(e) => {
+                      if ((e.target as HTMLDetailsElement).open) {
+                        console.log('🟡🟡🟡 [Message Debug] 🟡🟡🟡');
+                        console.table({
+                          messageId: message.messageId,
+                          messageType: message.messageType,
+                          senderId: message.sender?.userId,
+                          senderNickname: message.sender?.nickname,
+                          data: message.data,
+                          createdAt: new Date(message.createdAt).toLocaleString(),
+                          updatedAt: new Date(message.updatedAt).toLocaleString(),
+                        });
+                        console.log('🟡 Full Message Object:', message);
+                      }
+                    }}
+                  >
+                    <summary className={styles.debugToggle}>🟡 ...</summary>
+                    <div className={styles.debugContent}>
+                      <div className={styles.debugRow}><span>ID:</span> {message.messageId}</div>
+                      <div className={styles.debugRow}><span>Type:</span> {message.messageType}</div>
+                      <div className={styles.debugRow}><span>Sender:</span> {message.sender?.userId}</div>
+                      <div className={styles.debugRow}><span>Data:</span> {message.data || 'null'}</div>
+                      <div className={styles.debugRow}><span>Created:</span> {new Date(message.createdAt).toLocaleString()}</div>
+                      {message.updatedAt !== message.createdAt && (
+                        <div className={styles.debugRow}><span>Updated:</span> {new Date(message.updatedAt).toLocaleString()}</div>
+                      )}
+                    </div>
+                  </details>
                 )}
               </div>
             );

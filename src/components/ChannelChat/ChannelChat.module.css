@@ -8,31 +8,57 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
+  gap: 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid #e5e7eb;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: #f8fafc;
 }
 
 .backButton {
-  padding: 8px 16px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  padding: 4px 10px;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: #374151;
   transition: all 0.2s;
 }
 
 .backButton:hover {
-  background: #f3f4f6;
-  border-color: #6366f1;
   color: #6366f1;
 }
 
 .headerInfo {
   flex: 1;
+}
+
+.headerBlockButton {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.headerBlockButton:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.headerBlockButton.blocked {
+  color: #fff;
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.headerBlockButton.blocked:hover {
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 /* 설정 버튼 및 메뉴 */
@@ -41,23 +67,21 @@
 }
 
 .settingsButton {
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 1.25rem;
+  font-size: 1rem;
   transition: all 0.2s;
 }
 
 .settingsButton:hover {
-  background: #f3f4f6;
-  border-color: #6366f1;
-  transform: rotate(45deg);
+  background: #e5e7eb;
 }
 
 .settingsOverlay {
@@ -146,6 +170,13 @@
   letter-spacing: 0.5px;
 }
 
+.emptyBlockedList {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
 .blockedUserItem {
   width: 100%;
   padding: 10px 16px;
@@ -175,8 +206,8 @@
 }
 
 .channelName {
-  margin: 0 0 4px 0;
-  font-size: 1.125rem;
+  margin: 0;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #1a1a2e;
 }
@@ -713,3 +744,46 @@
   transform: scale(1.2);
 }
 
+/* 디버그 정보 표시 (토글) */
+.debugInfo {
+  margin-top: 4px;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 11px;
+}
+
+.debugToggle {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #3b3b4f;
+  color: #f9e2af;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  user-select: none;
+}
+
+.debugToggle:hover {
+  background: #4b4b5f;
+}
+
+.debugContent {
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: #1e1e2e;
+  border-radius: 6px;
+  color: #cdd6f4;
+  max-width: 300px;
+}
+
+.debugRow {
+  display: flex;
+  gap: 6px;
+  padding: 2px 0;
+  word-break: break-all;
+}
+
+.debugRow span {
+  color: #89b4fa;
+  min-width: 60px;
+  flex-shrink: 0;
+}

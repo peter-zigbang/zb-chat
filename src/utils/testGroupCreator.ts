@@ -175,6 +175,58 @@ export async function inviteUserToChannel(
 }
 
 /**
+ * 아파트 유저 생성 및 채널 초대
+ * FE_APT_01, FE_APT_02, FE_APT_03
+ */
+export async function createAptUsersAndInvite(
+  channelUrl: string,
+  onProgress?: (message: string) => void
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const aptUsers = [
+      { userId: 'FE_APT_01', nickname: '아파트유저01' },
+      { userId: 'FE_APT_02', nickname: '아파트유저02' },
+      { userId: 'FE_APT_03', nickname: '아파트유저03' },
+    ];
+
+    const sb = SendbirdChat.init({
+      appId: SENDBIRD_CONFIG.APP_ID,
+      modules: [new GroupChannelModule()],
+    }) as SendbirdChatWith<[GroupChannelModule]>;
+
+    // 1단계: 각 사용자를 등록
+    onProgress?.('🔄 아파트 유저 생성 중...');
+    for (const user of aptUsers) {
+      try {
+        await sb.connect(user.userId);
+        await sb.updateCurrentUserInfo({ nickname: user.nickname });
+        await sb.disconnect();
+        onProgress?.(`✅ ${user.nickname} (${user.userId}) 생성 완료`);
+      } catch (error) {
+        console.warn(`사용자 ${user.userId} 등록 실패:`, error);
+      }
+    }
+
+    // 2단계: 채널에 초대 (기존 멤버로 연결해서 초대)
+    onProgress?.('🔄 채널에 초대 중...');
+    await sb.connect('user_c'); // 또는 기존 운영자
+    
+    const channel = await sb.groupChannel.getChannel(channelUrl);
+    await channel.inviteWithUserIds(aptUsers.map(u => u.userId));
+
+    onProgress?.('✅ 아파트 유저 3명 생성 및 초대 완료!');
+    
+    return { success: true };
+  } catch (error) {
+    console.error('❌ 아파트 유저 생성/초대 실패:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '알 수 없는 오류',
+    };
+  }
+}
+
+/**
  * A, B, C 사용자가 포함된 멀티 그룹 생성 (멀티 모드용)
  * 50명의 테스트 사용자를 먼저 등록한 후 그룹 생성
  */

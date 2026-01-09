@@ -1,12 +1,144 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { GroupChannel } from '@sendbird/chat/groupChannel';
 import Channel from '@sendbird/uikit-react/Channel';
+import { useSendbirdStateContext } from '@sendbird/uikit-react';
 import { SendbirdProviderWrapper } from '@/providers/SendbirdProvider';
 import { ChannelList } from '../ChannelList/ChannelList';
 import { ChannelChat } from '../ChannelChat/ChannelChat';
 import { TestGroupCreator } from '../TestGroupCreator/TestGroupCreator';
 import type { ChatPageProps } from '@/types';
 import styles from './ChatPage.module.css';
+
+// 차단 대상 사용자 목록
+const BLOCK_TARGET_USERS = [
+  { userId: 'FE_APT_01', nickname: '아파트유저01' },
+  { userId: 'FE_APT_02', nickname: '아파트유저02' },
+  { userId: 'FE_APT_03', nickname: '아파트유저03' },
+];
+
+// 공통 채팅 헤더 컴포넌트
+function ChatHeader({ 
+  channel, 
+  onBack, 
+  currentUserId 
+}: { 
+  channel: GroupChannel; 
+  onBack: () => void;
+  currentUserId: string;
+}) {
+  const [showBlockMenu, setShowBlockMenu] = useState(false);
+  const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
+  const context = useSendbirdStateContext();
+  const sdk = context?.stores?.sdkStore?.sdk;
+
+  // 차단 상태 확인
+  useEffect(() => {
+    const checkBlockStatus = async () => {
+      if (!sdk) return;
+      
+      try {
+        const query = sdk.createBlockedUserListQuery();
+        const blockedUsers = await query.next();
+        const blockedIds = new Set(blockedUsers.map(u => u.userId));
+        setBlockedUserIds(blockedIds);
+      } catch (err) {
+        console.error('차단 상태 확인 실패:', err);
+      }
+    };
+    checkBlockStatus();
+  }, [sdk]);
+
+  // 차단하기
+  const handleBlockUser = async (userId: string) => {
+    if (!sdk) return;
+    
+    try {
+      await sdk.blockUserWithUserId(userId);
+      setBlockedUserIds(prev => new Set([...prev, userId]));
+      // 차단 변경 이벤트 발생 (ChannelChat에서 감지)
+      window.dispatchEvent(new CustomEvent('blockListChanged'));
+    } catch (err) {
+      console.error('차단 실패:', err);
+    }
+  };
+
+  // 차단 해제
+  const handleUnblockUser = async (userId: string) => {
+    if (!sdk) return;
+    
+    try {
+      await sdk.unblockUserWithUserId(userId);
+      setBlockedUserIds(prev => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+      // 차단 변경 이벤트 발생 (ChannelChat에서 감지)
+      window.dispatchEvent(new CustomEvent('blockListChanged'));
+    } catch (err) {
+      console.error('차단 해제 실패:', err);
+    }
+  };
+
+  // 현재 사용자를 제외한 차단 대상 목록
+  const blockTargets = BLOCK_TARGET_USERS.filter(u => u.userId !== currentUserId);
+  
+  // 차단된 사용자 수
+  const blockedCount = blockTargets.filter(u => blockedUserIds.has(u.userId)).length;
+
+  return (
+    <div className={styles.chatHeader}>
+      <button onClick={onBack} className={styles.chatBackButton}>
+        ←
+      </button>
+      <div className={styles.chatHeaderInfo}>
+        <span className={styles.chatHeaderTitle}>{channel.name || '채팅방'}</span>
+      </div>
+      
+      {/* 차단 버튼 및 드롭다운 */}
+      <div className={styles.blockWrapper}>
+        <button
+          className={`${styles.chatBlockButton} ${blockedCount > 0 ? styles.blocked : ''}`}
+          onClick={() => setShowBlockMenu(!showBlockMenu)}
+        >
+          차단 {blockedCount > 0 && `(${blockedCount})`}
+        </button>
+        
+        {showBlockMenu && (
+          <>
+            <div 
+              className={styles.blockOverlay}
+              onClick={() => setShowBlockMenu(false)}
+            />
+            <div className={styles.blockMenu}>
+              {blockTargets.map(user => {
+                const isBlocked = blockedUserIds.has(user.userId);
+                return (
+                  <button
+                    key={user.userId}
+                    className={`${styles.blockMenuItem} ${isBlocked ? styles.blockedItem : ''}`}
+                    onClick={() => {
+                      if (isBlocked) {
+                        handleUnblockUser(user.userId);
+                      } else {
+                        handleBlockUser(user.userId);
+                      }
+                    }}
+                  >
+                    <span className={styles.blockUserName}>{user.userId}</span>
+                    <span className={styles.blockStatus}>
+                      {isBlocked ? '차단 해제' : '차단'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // zigbang의 전체 채팅 구조와 유사
 export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded, uiMode = 'custom' }: ChatPageProps) {
@@ -23,6 +155,17 @@ export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded, uiM
 
   const handleBack = useCallback(() => {
     setSelectedChannel(null);
+  }, []);
+
+  // 부모 창(DualChatView)에서 오는 메시지 수신 (채팅방 목록으로 돌아가기)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'GO_TO_CHANNEL_LIST') {
+        setSelectedChannel(null);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   return (
@@ -60,20 +203,25 @@ export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded, uiM
           {embedded ? (
             selectedChannel ? (
               <section className={styles.chatAreaFull}>
+                {/* 공통 헤더 */}
+                <ChatHeader 
+                  channel={selectedChannel} 
+                  onBack={handleBack}
+                  currentUserId={userId}
+                />
+                
                 {uiMode === 'basic' ? (
                   // 샌드버드 기본 UI
                   <div className={styles.basicChannelWrapper}>
-                    <button onClick={handleBack} className={styles.basicBackButton}>
-                      ← 뒤로
-                    </button>
                     <Channel channelUrl={selectedChannel.url} />
                   </div>
                 ) : (
-                  // 커스텀 UI
+                  // 커스텀 UI (헤더 숨김)
                   <ChannelChat 
                     channel={selectedChannel} 
                     onBack={handleBack}
                     currentUserId={userId}
+                    hideHeader
                   />
                 )}
               </section>
@@ -104,11 +252,12 @@ export function ChatPage({ userId, nickname, onLogout, onDualMode, embedded, uiM
                       <Channel channelUrl={selectedChannel.url} />
                     </div>
                   ) : (
-                    // 커스텀 UI
+                    // 커스텀 UI (단일 모드에서는 디버그 정보 표시)
                     <ChannelChat 
                       channel={selectedChannel} 
                       onBack={handleBack}
                       currentUserId={userId}
+                      showDebug={!embedded}
                     />
                   )
                 ) : (

@@ -5,6 +5,13 @@ import { DualChatView } from './components/DualChatView/DualChatView';
 type UIMode = 'basic' | 'custom';
 type ViewMode = 'select' | 'chat' | 'single';
 
+// 사용자 정보
+const USERS = [
+  { userId: 'FE_APT_01', nickname: '아파트유저01' },
+  { userId: 'FE_APT_02', nickname: '아파트유저02' },
+  { userId: 'FE_APT_03', nickname: '아파트유저03' },
+];
+
 // URL 쿼리 파라미터 파싱
 function getQueryParams() {
   const params = new URLSearchParams(window.location.search);
@@ -19,6 +26,7 @@ function getQueryParams() {
 function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('select');
   const [uiMode, setUIMode] = useState<UIMode>('custom');
+  const [selectedUser, setSelectedUser] = useState(USERS[0]);
 
   // URL 쿼리 파라미터 확인 (iframe embedded 모드)
   const queryParams = useMemo(() => getQueryParams(), []);
@@ -35,12 +43,12 @@ function App() {
     );
   }
 
-  // 단일 사용자 모드 - FE_APT_01로 ChatPage 표시
+  // 단일 사용자 모드 - 선택된 사용자로 ChatPage 표시
   if (viewMode === 'single') {
     return (
       <ChatPage
-        userId="FE_APT_01"
-        nickname="아파트유저01"
+        userId={selectedUser.userId}
+        nickname={selectedUser.nickname}
         embedded={false}
         uiMode={uiMode}
         onLogout={() => setViewMode('select')}
@@ -92,29 +100,32 @@ function App() {
           </button>
         </div>
         
-        {/* 단일 유저 모드 (FE_APT_01) */}
-        <p style={styles.sectionLabel}>FE_APT_01 단일</p>
-        <div style={styles.buttonGroup}>
-          <button
-            style={styles.buttonSingleBasic}
-            onClick={() => {
-              setUIMode('basic');
-              setViewMode('single');
-            }}
-          >
-            📦 FE_APT_01 샌드버드
-          </button>
-          
-          <button
-            style={styles.buttonSingleCustom}
-            onClick={() => {
-              setUIMode('custom');
-              setViewMode('single');
-            }}
-          >
-            🎨 FE_APT_01 커스텀
-          </button>
-        </div>
+        {/* 단일 유저 모드 - 각 사용자별 버튼 */}
+        {USERS.map((user) => (
+          <div key={user.userId} style={styles.buttonGroup}>
+            <button
+              style={styles.buttonSingleBasic}
+              onClick={() => {
+                setSelectedUser(user);
+                setUIMode('basic');
+                setViewMode('single');
+              }}
+            >
+              📦 {user.userId} 샌드버드
+            </button>
+            
+            <button
+              style={styles.buttonSingleCustom}
+              onClick={() => {
+                setSelectedUser(user);
+                setUIMode('custom');
+                setViewMode('single');
+              }}
+            >
+              🎨 {user.userId} 커스텀
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

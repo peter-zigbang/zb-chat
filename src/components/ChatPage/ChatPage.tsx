@@ -28,8 +28,19 @@ function ChatHeader({
 }) {
   const [showBlockMenu, setShowBlockMenu] = useState(false);
   const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
+  const [showNicknameModal, setShowNicknameModal] = useState(false);
+  const [newNickname, setNewNickname] = useState('');
+  const [currentNickname, setCurrentNickname] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
   const context = useSendbirdStateContext();
   const sdk = context?.stores?.sdkStore?.sdk;
+
+  // 현재 닉네임 가져오기
+  useEffect(() => {
+    if (sdk?.currentUser) {
+      setCurrentNickname(sdk.currentUser.nickname || '');
+    }
+  }, [sdk]);
 
   // 차단 상태 확인
   useEffect(() => {
@@ -77,6 +88,28 @@ function ChatHeader({
       window.dispatchEvent(new CustomEvent('blockListChanged'));
     } catch (err) {
       console.error('차단 해제 실패:', err);
+    }
+  };
+
+  // 닉네임 변경
+  const handleUpdateNickname = async () => {
+    if (!sdk || !newNickname.trim()) return;
+    
+    setIsUpdating(true);
+    try {
+      await sdk.updateCurrentUserInfo({
+        nickname: newNickname.trim(),
+      });
+      setCurrentNickname(newNickname.trim());
+      setShowNicknameModal(false);
+      setNewNickname('');
+      console.log('[ChatHeader] 닉네임 변경 성공:', newNickname.trim());
+      alert(`닉네임이 "${newNickname.trim()}"(으)로 변경되었습니다.`);
+    } catch (err) {
+      console.error('닉네임 변경 실패:', err);
+      alert('닉네임 변경에 실패했습니다.');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -136,6 +169,57 @@ function ChatHeader({
           </>
         )}
       </div>
+
+      {/* 닉네임 변경 버튼 */}
+      <button
+        className={styles.nicknameButton}
+        onClick={() => {
+          setNewNickname(currentNickname);
+          setShowNicknameModal(true);
+        }}
+      >
+        ✏️ 닉네임
+      </button>
+
+      {/* 닉네임 변경 모달 */}
+      {showNicknameModal && (
+        <>
+          <div 
+            className={styles.blockOverlay}
+            onClick={() => setShowNicknameModal(false)}
+          />
+          <div className={styles.nicknameModal}>
+            <h3 className={styles.nicknameModalTitle}>닉네임 변경</h3>
+            <p className={styles.nicknameModalCurrent}>
+              현재: <strong>{currentNickname || '없음'}</strong>
+            </p>
+            <input
+              type="text"
+              value={newNickname}
+              onChange={(e) => setNewNickname(e.target.value)}
+              placeholder="새 닉네임 입력"
+              className={styles.nicknameInput}
+              disabled={isUpdating}
+            />
+            <div className={styles.nicknameModalButtons}>
+              <button
+                className={styles.nicknameModalCancel}
+                onClick={() => setShowNicknameModal(false)}
+                disabled={isUpdating}
+              >
+                취소
+              </button>
+              <button
+                className={styles.nicknameModalConfirm}
+                onClick={handleUpdateNickname}
+                disabled={isUpdating || !newNickname.trim()}
+              >
+                {isUpdating ? '변경중...' : '변경'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

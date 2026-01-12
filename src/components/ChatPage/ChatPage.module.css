@@ -249,6 +249,117 @@
   color: #10b981;
 }
 
+/* 닉네임 변경 버튼 */
+.nicknameButton {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nicknameButton:hover {
+  color: #6366f1;
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+/* 닉네임 변경 모달 */
+.nicknameModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 280px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  padding: 20px;
+}
+
+.nicknameModalTitle {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.nicknameModalCurrent {
+  margin: 0 0 16px 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.nicknameModalCurrent strong {
+  color: #374151;
+}
+
+.nicknameInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.nicknameInput:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.nicknameModalButtons {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.nicknameModalCancel {
+  flex: 1;
+  padding: 10px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.nicknameModalCancel:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.nicknameModalConfirm {
+  flex: 1;
+  padding: 10px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.nicknameModalConfirm:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.nicknameModalConfirm:disabled,
+.nicknameModalCancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* 샌드버드 기본 UI 래퍼 */
 .basicChannelWrapper {
   flex: 1;
